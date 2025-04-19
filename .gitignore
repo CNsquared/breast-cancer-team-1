@@ -2,3 +2,7 @@ __pycache__/
 *.csv
 *.txt
 *.tsv
+*.xls
+output/
+figures/
+tables/
