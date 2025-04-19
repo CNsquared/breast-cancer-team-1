@@ -25,7 +25,9 @@ TCGA_LINK='https://www.dropbox.com/scl/fo/7d37xqur5vlb8jni61b0t/AIULq2j8qwiKujKL
 wget $TCGA_LINK -O "data/TCGA_BRCA.zip"
 
 echo "unzip TCGA data"
-unzip data/TCGA_BRCA.zip
+unzip data/TCGA_BRCA.zip -d data
 rm data/TCGA_BRCA.zip
+
+mv TCGA.BRCA* data
 
 echo "complete"
