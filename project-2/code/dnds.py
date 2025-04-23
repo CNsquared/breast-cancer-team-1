@@ -1,3 +1,0 @@
-
-def dNdS(data):
-    pass

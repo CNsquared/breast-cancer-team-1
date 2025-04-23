@@ -1,13 +1,13 @@
-from code.dataloader import load
-from code.dnds import dNdS
-from code.eval import eval
+from src.pipeline import preprocess
+from src.pipeline import run_analysis
+from src.pipeline import postprocess
 
 if __name__ == "__main__":
-    datapath = "data/"
-    data = load(datapath)
-    
-    rankings = dNdS(data)
-    
-    eval(rankings)
-    
-    
+
+    print("Running pipeline")
+    print("Preprocessing data")
+    preprocess()
+    print("Running analysis")
+    run_analysis()
+    print("Postprocessing data")
+    postprocess()

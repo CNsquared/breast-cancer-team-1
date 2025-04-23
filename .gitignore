@@ -3,6 +3,5 @@ __pycache__/
 *.txt
 *.tsv
 *.xls
-output/
-figures/
-tables/
+/output/
+/data/
