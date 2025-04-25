@@ -2,11 +2,13 @@ from src.pipeline import preprocess, run_analysis, postprocess
 
 def main():
 
-    data = preprocess.something()
+    print("Preprocesssing mutation data...")
+    data = preprocess.preprocess()
+  
 
-    results = run_analysis.something(data)
+    #results = run_analysis.something(data)
 
-    postprocess.something(results)
+    #postprocess.something(results)
 
 if __name__ == "__main__":
     main()
