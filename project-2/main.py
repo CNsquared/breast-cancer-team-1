@@ -4,7 +4,7 @@ def main():
 
     print("Preprocesssing mutation data...")
     data = preprocess.preprocess()
-  
+    data.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt')
 
     #results = run_analysis.something(data)
 
