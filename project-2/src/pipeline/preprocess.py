@@ -12,7 +12,7 @@ def preprocess():
     df_mut = df_mut[df_mut['Variant_Type'] == 'SNP']
 
     # define mutation type
-    df_mut.loc[:,'mutation_type'] = df_mut.apply(lambda row: 'synonymous' if row['Variant_Classification'] == 'Silent' else 'non-synonymous' if row['CDS_position'] != '_' else None, axis=1)
+    df_mut.loc[:,'mutation_type'] = df_mut.apply(lambda row: 'synonymous' if row['Variant_Classification'] == 'Silent' else 'non-synonymous' if row['CDS_position'] != '.' else None, axis=1)
 
     # remove genes that don't have a symbol (they all have symbols FYI)
     df_mut = df_mut[df_mut['Hugo_Symbol'].notna()]
