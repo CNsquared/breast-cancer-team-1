@@ -1,0 +1,26 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(maftools)
+library(data.table)
+library(dplyr)
+```
+```{r}
+laml.maf = "/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-2/data/processed/TCGA.BRCA.mutations.qc1.txt"
+laml = read.maf(maf = laml.maf)
+```
+
+```{r}
+getSampleSummary(laml)
+```
+```{r}
+plot = "summary"
+name = paste0('/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-2/results/figures/', plot, "", ".pdf")
+pdf(file = name)
+plotmafSummary(maf = laml, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, titvRaw = FALSE, showBarcodes=TRUE, log_scale = F, top=20)
+dev.off()
+```
+
