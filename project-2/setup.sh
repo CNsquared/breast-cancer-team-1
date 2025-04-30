@@ -17,6 +17,15 @@ conda activate project2_env
 
 cd data/raw
 
+# Download additional file
+INTOGEN='1BaA17wcSQIyjZ2tuOwbaeI2CC6GxgMqV'
+if [ -f "additional_file.txt" ]; then
+    echo "IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv already exists. Skipping download."
+else
+    echo "Downloading IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv"
+    gdown "https://drive.google.com/uc?id=${INTOGEN}"
+fi
+
 # Download Supplementary Tables 1-4
 SUPL_TABLE_ID='1M7PHOeb4AxAr0qaV6MSOVs_rSn391Eg-'
 if [ -f "Supplementary Tables 1-4.xls" ]; then
