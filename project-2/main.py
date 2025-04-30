@@ -1,9 +1,13 @@
 from src.pipeline import preprocess, run_analysis, postprocess
 
+PROCESSED_OUTPUT= 'data/processed/TCGA.BRCA.mutations.qc1.txt'
+
 def main():
 
     print("Preprocesssing mutation data...")
-    mutations_processed = preprocess.preprocess_mutations()
+    mutations_processed = preprocess.preprocess()
+    mutations_processed.to_csv(PROCESSED_OUTPUT)
+    print(f"Preprocessed data saved to {PROCESSED_OUTPUT}")
     
     print("Preprocessing reference data...")
     reference_processed = preprocess.preprocess_reference()
