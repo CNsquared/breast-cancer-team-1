@@ -5,7 +5,7 @@ PROCESSED_OUTPUT= 'data/processed/TCGA.BRCA.mutations.qc1.txt'
 def main():
 
     print("Preprocesssing mutation data...")
-    mutations_processed = preprocess.preprocess()
+    mutations_processed = preprocess.preprocess_mutations()
     mutations_processed.to_csv(PROCESSED_OUTPUT)
     print(f"Preprocessed data saved to {PROCESSED_OUTPUT}")
     
