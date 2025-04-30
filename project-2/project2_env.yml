@@ -11,3 +11,6 @@ dependencies:
   - scikit-learn
   - ipykernel
   - nb_conda_kernels
+  - gdown
+  - statsmodels
+  - pyyaml

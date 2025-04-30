@@ -94,4 +94,89 @@ if __name__ == "__main__":
     dcg, bpref, accuracy = evalAccuracy(dn_ds_ranks, baseline_ranks)
     
     df_gene_ranks = compareRankings(dn_ds_ranks, baseline_ranks)
-    print(df_gene_ranks)
+    print(df_gene_ranks)import pandas as pd
+
+def count_mutations(mutations_processed):
+    """
+    Counts the number of mutations of various types for each gene in the processed mutation data
+
+    Args: 
+        mutations_processed (pd.DataFrame): Processed mutation data
+    
+    Returns:
+        counts_df (pd.DataFrame): Dataframe where rows are genes, and columns are observed counts of SYN and non-SYN mutations
+    """
+
+    # 2. Define categories and order
+    syn_col = 'synonymous'
+    non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
+  
+    # 3. Group and pivot to get counts per gene per class
+    mutation_counts = mutations_processed.groupby(['Hugo_Symbol', 'mutation_class']).size()
+    counts_df = mutation_counts.unstack(fill_value=0)
+
+    # 4. Filter genes with at least 5 total mutations
+    counts_df = counts_df[counts_df.sum(axis=1) >= 5]
+
+    # 5. Combine non-SYN columns
+    counts_df['nonsynonymous'] = counts_df[non_syn_classes].sum(axis=1)
+
+    # 6. add 0.5 pseudocounts
+    # counts_df['nonsynonymous'] += 0.5
+    # counts_df['synonymous'] += 0.5
+
+    print(counts_df.head())
+
+    return counts_df
+
+def calculate_possible_mutations(reference_processed):
+    """
+    Calculates the number of possible S and N mutations 
+
+    Args:
+        reference_processed (pd.DataFrame): Dataframe containing sequence of all CDSs in TCGA.BRCA
+
+    Returns:
+        reference_info (pd.DataFrame): Dataframe containing N sites, S sites, and length of all CDSs in TCGA.BRCA
+
+    """
+
+    reference_info = None
+
+    return reference_info
+
+def evaluate(counts_df, reference_info):
+    """
+    Calculated dN/dS and evaluates significance using normal approximation
+
+    Args: 
+        counts_df (pd.DataFrame): Dataframe where rows are genes, and columns are observed counts of SYN and non-SYN mutations
+        reference_info (pd.DataFrame): Dataframe containing N sites, S sites, and length of all CDSs in TCGA.BRCA
+
+    Returns:
+        results_df (pd.DataFrame): Dataframe withr results
+    """
+
+    # calculate dN
+
+    # approximate variance of dN using Binomial approximation
+
+    # calculate dS
+
+    # approximate variance of dS using Binomial approximation
+
+    # calculate test statistic (Z-test) using approximated variances
+
+    # apply bonferroni
+
+    # apply Benjamini-Hochberg FDR
+
+    # calculate Fisher exact (null -> expected NS is SYN rate times NS sites, expected S is S)
+
+
+    # return results
+    results_df = None
+    return results_df
+
+    
+

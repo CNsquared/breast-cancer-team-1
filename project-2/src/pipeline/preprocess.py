@@ -1,7 +1,14 @@
 import pandas as pd
 
+def preprocess_mutations():
+    """
+    Preprocesses mutation data
 
-def preprocess():
+    Returns:
+        df_mut (pd.DataFrame): Processed mutation data
+    """
+    HYPERMUTATOR_THRESHOLD = 500
+
     # read in raw mutation data
     df_mut = pd.read_csv('data/raw/TCGA.BRCA.mutations.txt', sep='\t')
 
@@ -14,6 +21,9 @@ def preprocess():
     # define mutation type
     df_mut.loc[:,'mutation_type'] = df_mut.apply(lambda row: 'synonymous' if row['Variant_Classification'] == 'Silent' else 'non-synonymous' if row['CDS_position'] != '.' else None, axis=1)
 
+    # drop rows where mutation_type is None
+    df_mut = df_mut.dropna(subset=['mutation_type'])
+
     # remove genes that don't have a symbol (they all have symbols FYI)
     df_mut = df_mut[df_mut['Hugo_Symbol'].notna()]
 
@@ -25,13 +35,32 @@ def preprocess():
     mutation_counts = df_mut['patient_id'].value_counts()
 
     # keep only patients with <= 500 mutations
-    normal_mutators = mutation_counts[mutation_counts <= 500].index
+    normal_mutators = mutation_counts[mutation_counts <= HYPERMUTATOR_THRESHOLD].index
 
     # filter out hypermutators
     df_mut = df_mut[df_mut['patient_id'].isin(normal_mutators)]
 
     # write output
-    #df_mut.to_csv('../../data/processed/TCGA.BRCA.mutations.qc1.txt')
+    #df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t')
+
+    df_mut['mutation_class'] = df_mut.apply(
+        lambda x: x['Variant_Classification']
+                if x['mutation_type'] == 'non-synonymous'
+                else 'synonymous',
+        axis=1
+    )
 
     # return output
     return df_mut
+
+
+def preprocess_reference():
+    """
+    Preprocesses reference data
+
+    Returns:
+        reference_processed (pd.DataFrame): Processed mutation data
+    """
+
+    reference_processed = None
+    return reference_processed
