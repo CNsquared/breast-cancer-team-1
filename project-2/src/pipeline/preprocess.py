@@ -43,6 +43,13 @@ def preprocess_mutations():
     # write output
     #df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t')
 
+    df_mut['mutation_class'] = df_mut.apply(
+        lambda x: x['Variant_Classification']
+                if x['mutation_type'] == 'non-synonymous'
+                else 'synonymous',
+        axis=1
+    )
+
     # return output
     return df_mut
 
