@@ -22,22 +22,22 @@ def count_mutations(mutations_processed):
     # 2. Define categories and order
     syn_col = 'synonymous'
     non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
-    all_classes = [syn_col] + non_syn_classes
-
+  
     # 3. Group and pivot to get counts per gene per class
     mutation_counts = mutations_processed.groupby(['Hugo_Symbol', 'mutation_class']).size()
     counts_df = mutation_counts.unstack(fill_value=0)
 
-    # 4. Ensure all classes exist
-    for col in all_classes:
-        if col not in counts_df.columns:
-            counts_df[col] = 0
-
-    # 5. Reorder columns
-    counts_df = counts_df[all_classes]
-
-    # 6. Filter genes with at least 5 total mutations
+    # 4. Filter genes with at least 5 total mutations
     counts_df = counts_df[counts_df.sum(axis=1) >= 5]
+
+    # 5. Combine non-SYN columns
+    counts_df['nonsynonymous'] = counts_df[non_syn_classes].sum(axis=1)
+
+    # 6. add 0.5 pseudocounts
+    # counts_df['nonsynonymous'] += 0.5
+    # counts_df['synonymous'] += 0.5
+
+    print(counts_df.head())
 
     return counts_df, mutations_processed
 
@@ -82,6 +82,9 @@ def evaluate(counts_df, reference_info):
     # apply bonferroni
 
     # apply Benjamini-Hochberg FDR
+
+    # calculate Fisher exact (null -> expected NS is SYN rate times NS sites, expected S is S)
+
 
     # return results
     results_df = None
