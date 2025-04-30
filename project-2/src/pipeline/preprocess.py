@@ -1,7 +1,13 @@
 import pandas as pd
 
 
-def preprocess():
+def preprocess_mutations():
+    """
+    Preprocesses mutation data
+
+    Returns:
+        df_mut (pd.DataFrame): Processed mutation data
+    """
     # read in raw mutation data
     df_mut = pd.read_csv('data/raw/TCGA.BRCA.mutations.txt', sep='\t')
 
@@ -31,7 +37,19 @@ def preprocess():
     df_mut = df_mut[df_mut['patient_id'].isin(normal_mutators)]
 
     # write output
-    #df_mut.to_csv('../../data/processed/TCGA.BRCA.mutations.qc1.txt')
+    #df_mut.to_csv('../../data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t')
 
     # return output
     return df_mut
+
+
+def preprocess_reference():
+    """
+    Preprocesses reference data
+
+    Returns:
+        reference_processed (pd.DataFrame): Processed mutation data
+    """
+
+    reference_processed = None
+    return reference_processed
