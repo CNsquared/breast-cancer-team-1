@@ -94,7 +94,7 @@ if __name__ == "__main__":
     dcg, bpref, accuracy = evalAccuracy(dn_ds_ranks, baseline_ranks)
     
     df_gene_ranks = compareRankings(dn_ds_ranks, baseline_ranks)
-    print(df_gene_ranks)import pandas as pd
+    print(df_gene_ranks)
 
 def count_mutations(mutations_processed):
     """
