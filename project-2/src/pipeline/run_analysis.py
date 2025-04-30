@@ -11,9 +11,35 @@ def count_mutations(mutations_processed):
         counts_df (pd.DataFrame): Dataframe where rows are genes, and columns are observed counts of SYN and non-SYN mutations
     """
 
-    counts_df = None
+    
+    mutations_processed['mutation_class'] = mutations_processed.apply(
+        lambda x: x['Variant_Classification']
+                if x['mutation_type'] == 'non-synonymous'
+                else 'synonymous',
+        axis=1
+    )
 
-    return counts_df
+    # 2. Define categories and order
+    syn_col = 'synonymous'
+    non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
+    all_classes = [syn_col] + non_syn_classes
+
+    # 3. Group and pivot to get counts per gene per class
+    mutation_counts = mutations_processed.groupby(['Hugo_Symbol', 'mutation_class']).size()
+    counts_df = mutation_counts.unstack(fill_value=0)
+
+    # 4. Ensure all classes exist
+    for col in all_classes:
+        if col not in counts_df.columns:
+            counts_df[col] = 0
+
+    # 5. Reorder columns
+    counts_df = counts_df[all_classes]
+
+    # 6. Filter genes with at least 5 total mutations
+    counts_df = counts_df[counts_df.sum(axis=1) >= 5]
+
+    return counts_df, mutations_processed
 
 def calculate_possible_mutations(reference_processed):
     """
