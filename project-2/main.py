@@ -6,7 +6,7 @@ def main():
 
     print("Preprocesssing mutation data...")
     mutations_processed = preprocess.preprocess_mutations()
-    mutations_processed.to_csv(PROCESSED_OUTPUT)
+    mutations_processed.to_csv(PROCESSED_OUTPUT, sep='\t', index=False)
     print(f"Preprocessed data saved to {PROCESSED_OUTPUT}")
     
     print("Preprocessing reference data...")
