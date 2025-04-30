@@ -13,7 +13,7 @@ def main():
     reference_processed = preprocess.preprocess_reference()
 
     print("Counting observed synonymous and non-synonymous SNVs")
-    counts_df = run_analysis.count_mutations(mutations_processed)
+    counts_df, mutations_processed = run_analysis.count_mutations(mutations_processed)
 
     print("Calculating possible synonymous and non-synonymous SNVs")
     df_sizes = run_analysis.calculate_possible_mutations(reference_processed)
