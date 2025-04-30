@@ -41,7 +41,7 @@ def preprocess_mutations():
     df_mut = df_mut[df_mut['patient_id'].isin(normal_mutators)]
 
     # write output
-    df_mut.to_csv('../../data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t')
+    df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t')
 
     # return output
     return df_mut
