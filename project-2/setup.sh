@@ -17,9 +17,9 @@ conda activate project2_env
 
 cd data/raw
 
-# Download additional file
+# Download intogen file
 INTOGEN='1BaA17wcSQIyjZ2tuOwbaeI2CC6GxgMqV'
-if [ -f "additional_file.txt" ]; then
+if [ -f "IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv" ]; then
     echo "IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv already exists. Skipping download."
 else
     echo "Downloading IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv"

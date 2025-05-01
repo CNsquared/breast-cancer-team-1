@@ -1,5 +1,7 @@
 from src.pipeline import preprocess, run_analysis, postprocess
 
+import pandas as pd
+
 def main():
 
     print("Preprocesssing mutation data...")
@@ -17,7 +19,18 @@ def main():
     dnds_simple_results = run_analysis.run_dnds_simple(mutations_processed, df_sizes)
     dnds_simple_results.to_csv('results/tables/dnds_simple_results.tsv', sep="\t", index=False)
     print("dN/dS simple results saved to results/tables/dnds_simple_results.tsv")
-    #postprocess.something(dnds_simple_results)
+
+    print("Running Evaluation Metrics on dN/dS results against IntOGen...")
+    df_gene_ranks, dcg, bpref, accuracy = postprocess.get_intogen_ranks()
+    df_gene_ranks.to_csv('results/tables/dnds_simple_results_intogen.tsv', sep="\t", index=False)
+    print("dN/dS results compared to IntOGen saved to results/tables/dnds_simple_results_intogen.tsv")
+    summary = pd.DataFrame({
+        "DCG": [dcg],
+        "Bpref": [bpref],
+        "Accuracy": [accuracy]
+    })
+    summary.to_csv('results/tables/dnds_simple_results_summary.tsv', sep="\t", index=False)
+    print("Evaluation metrics saved to results/tables/dnds_simple_results_summary.tsv")
 
     print("Job completed successfully!")
 
