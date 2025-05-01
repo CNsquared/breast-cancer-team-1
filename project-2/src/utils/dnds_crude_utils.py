@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import poisson
 from scipy.stats import fisher_exact
+from scipy.stats import chisquare
 
 def get_counts_df(df_mut):
     # 2. Define the desired categories and their plot order
@@ -306,4 +307,18 @@ def get_pval(df:pd.DataFrame) -> pd.DataFrame:
         return pd.Series({'fisher_odds': odds, 'fisher_pval': pval})
     
     df[['fisher_odds', 'fisher_pval']] = df.apply(fisher_pval, axis=1)
+
+    def chi2_pval(x):
+        """P-value for Chi2 test"""
+        gene_mutation_rate = (x['observed_nonsynonymous'] + x['synonymous']) / (x['nonsynonymous_opportunity'] + x['synonymous_opportunity'])
+        expected_synonymous = gene_mutation_rate * x['synonymous_opportunity']
+        expected_nonsynonymous = gene_mutation_rate * x['nonsynonymous_opportunity']
+        obs = [x['observed_nonsynonymous'], x['synonymous']]
+        exp = [expected_nonsynonymous, expected_synonymous]
+
+        statistic, pval = chisquare(f_obs=obs, f_exp=exp)
+        return pd.Series({'chi2': statistic, 'chi2_pval': pval})
+
+    df[['chi2', 'chi2_pval']] = df.apply(chi2_pval, axis=1)
+
     return df
