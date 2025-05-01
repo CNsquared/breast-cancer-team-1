@@ -15,7 +15,9 @@ def get_intogen_ranks():
     
     path_dn_ds = "results/tables/dnds_simple_results.tsv"
     df_dn_ds = pd.read_csv(path_dn_ds, sep="\t")
-    dn_ds_ranks = dict(zip(df_dn_ds["Hugo_Symbol"], df_dn_ds["dN/dS"]))
+    #dn_ds_ranks = dict(zip(df_dn_ds["Hugo_Symbol"], df_dn_ds["dN/dS"]))
+    
+    dn_ds_ranks = dict(zip(df_dn_ds["Hugo_Symbol"], -df_dn_ds["fisher_pval"]))
     
     # calculate accuracy metrics
     dcg, bpref, accuracy = evalAccuracy(dn_ds_ranks, baseline_ranks)
