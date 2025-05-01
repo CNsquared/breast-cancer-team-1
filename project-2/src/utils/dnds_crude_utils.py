@@ -225,7 +225,7 @@ def get_s_ns_opportunities(df_sizes: pd.DataFrame) -> pd.DataFrame:
     return df_sizes
 
 def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
-    
+
     # 2. Define categories and order
     syn_col = 'synonymous'
     non_syn_classes = [
@@ -264,6 +264,7 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     df['Indels'] = df['Frame_Shift_Del'] + df['Frame_Shift_Ins'] + df['In_Frame_Del'] + df['In_Frame_Ins']
     df['NS_SNV'] = df['Missense_Mutation'] + df['Nonsense_Mutation'] + df['Nonstop_Mutation']
     df['nonsynonymous_opportunity'] = df['nonsynonymous_opportunity'] * (1 + ((df['Indels'] + .5)/(df['NS_SNV'] + .5)).mean())
+
 
     df['dS'] = df.apply(
         lambda x: np.nan if x['synonymous_opportunity'] == 0 else x['synonymous'] / x['synonymous_opportunity'],
