@@ -225,7 +225,7 @@ def get_s_ns_opportunities(df_sizes: pd.DataFrame) -> pd.DataFrame:
     return df_sizes
 
 def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
-    
+
     # 2. Define categories and order
     syn_col = 'synonymous'
     non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
@@ -258,15 +258,28 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     ]
     df['observed_nonsynonymous'] = df[nonsyn_cols].sum(axis=1)
 
-    # 3. Calculate dS = observed_synonymous / synonymous_opportunity
-    df['dS'] = df['synonymous'] / df['synonymous_opportunity']
+    df['dS'] = df.apply(
+        lambda x: np.nan if x['synonymous_opportunity'] == 0 else x['synonymous'] / x['synonymous_opportunity'],
+        axis=1
+    )
+    df['dN'] = df.apply(
+        lambda x: np.nan if x['nonsynonymous_opportunity'] == 0 else x['observed_nonsynonymous'] / x['nonsynonymous_opportunity'],
+        axis=1
+    )
 
-    # 4. Calculate dN = observed_nonsynonymous / nonsynonymous_opportunity
-    df['dN'] = df['observed_nonsynonymous'] / df['nonsynonymous_opportunity']
-
-    # 5. Calculate dN/dS ratio
     df['dN/dS'] = df['dN'] / df['dS']
-    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
+    # replace inf with NaN
+    df['dN/dS'] = df['dN/dS'].replace([np.inf, -np.inf], np.nan)
+
+    # # 3. Calculate dS = observed_synonymous / synonymous_opportunity
+    # df['dS'] = df['synonymous'] / df['synonymous_opportunity']
+
+    # # 4. Calculate dN = observed_nonsynonymous / nonsynonymous_opportunity
+    # df['dN'] = df['observed_nonsynonymous'] / df['nonsynonymous_opportunity']
+
+    # # 5. Calculate dN/dS ratio
+    # df['dN/dS'] = df['dN'] / df['dS']
+    # df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
     return df
 
 def get_pval(df:pd.DataFrame) -> pd.DataFrame:
