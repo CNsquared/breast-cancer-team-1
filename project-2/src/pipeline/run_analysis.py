@@ -14,6 +14,8 @@ def run_dnds_simple(mutations_processed: pd.DataFrame, df_sizes: pd.DataFrame) -
         opportunities.to_csv("data/processed/dnds_opportunities.tsv", sep="\t", index=False)
     print("Calculating dN/dS")
     results = dnds.calculate_dnds(mutations_processed, opportunities)
+    print("Calculate p-values")
+    results = dnds.get_pval(results)
     return results
 
 

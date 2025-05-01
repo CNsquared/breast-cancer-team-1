@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from scipy.stats import poisson
+from scipy.stats import fisher_exact
 
 def get_counts_df(df_mut):
     # 2. Define the desired categories and their plot order
@@ -211,4 +213,43 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     df['dN/dS'] = df['dN'] / df['dS']
     df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
     return df
+
+def get_pval(df:pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate p-values for dN/dS ratios using two methods:
+    1. Poisson
+    2. Fisher exact
+
+    We will assume under our null hypothesis that the dN/dS ratio is 1 and that
+        the mutation rates are uniform for all sites and types of mutations across a gene.
+        
+    The p-values are added to the DataFrame as new columns.
+
+    Parameters:
+        df (pd.DataFrame): DataFrame containing dN/dS ratios
+            Dataframe needs these columns:
+            - 'synonymous_opportunity'
+            - 'nonsynonymous_opportunity'
+            - 'synonymous'
+            - 'observed_nonsynonymous'
+            
+    Returns:
+        df (pd.DataFrame): DataFrame with p-values added
+    """
+    # poisson exact test
+    def poisson_pval(x):
+        """P-value for observed nonsynonymous mutation count of the gene. Under null, expected should be equal to the observed synonymous mutations times the ratio of nonsynonymous to synonymous opportunities."""
+        return 1 - poisson.cdf(x['observed_nonsynonymous']-1, x['synonymous']*x['nonsynonymous_opportunity']/x['synonymous_opportunity'])
+
+    df['poisson_pval'] = df.apply(lambda x: poisson_pval(x), axis=1)
+    # fisher exact test
+    def fisher_pval(x):
+        """P-value for the Fisher's exact test"""
+        table = [[x['observed_nonsynonymous'], x['nonsynonymous_opportunity'] - x['observed_nonsynonymous']], 
+                [x['synonymous'], x['synonymous_opportunity'] - x['synonymous']]
+                ]
+        odds, pval = fisher_exact(table, alternative='greater')
+        return pd.Series({'fisher_odds': odds, 'fisher_pval': pval})
     
+    df[['fisher_odds', 'fisher_pval']] = df.apply(fisher_pval, axis=1)
+    return df
