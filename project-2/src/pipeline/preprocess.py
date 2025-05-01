@@ -17,7 +17,7 @@ def preprocess_mutations():
     df_mut = df_mut[df_mut['FILTER'] == 'PASS']
 
     # exclude indels
-    df_mut = df_mut[df_mut['Variant_Type'] == 'SNP']
+    #df_mut = df_mut[df_mut['Variant_Type'] == 'SNP']
 
     # define mutation type
     df_mut.loc[:,'mutation_type'] = df_mut.apply(lambda row: 'synonymous' if row['Variant_Classification'] == 'Silent' else 'non-synonymous' if row['CDS_position'] != '.' else None, axis=1)
