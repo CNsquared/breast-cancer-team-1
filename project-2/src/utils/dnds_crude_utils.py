@@ -260,10 +260,8 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     counts_df = counts_df.join(opportunities_df['CDS_length'], how='left')
     df = pd.merge(counts_df, opportunities_df[['Hugo_Symbol','synonymous_opportunity', 'nonsynonymous_opportunity']], how='inner', left_index=True, right_on='Hugo_Symbol')
 
-    # 2. Compute observed nonsynonymous as sum of all non-synonymous classes
-
+ 
     df['observed_nonsynonymous'] = df[non_syn_classes].sum(axis=1)
-
 
     # adjust nonsynonymous opportunities to include indels
     df['Indels'] = df['Frame_Shift_Del'] + df['Frame_Shift_Ins'] + df['In_Frame_Del'] + df['In_Frame_Ins']
@@ -316,4 +314,34 @@ def get_pval(df:pd.DataFrame) -> pd.DataFrame:
     Returns:
         df (pd.DataFrame): DataFrame with p-values added
     """
-    # poi
+    # poisson exact test
+    def poisson_pval(x):
+        """P-value for observed nonsynonymous mutation count of the gene. Under null, expected should be equal to the observed synonymous mutations times the ratio of nonsynonymous to synonymous opportunities."""
+        return 1 - poisson.cdf(x['observed_nonsynonymous']-1, x['synonymous']*x['nonsynonymous_opportunity']/x['synonymous_opportunity'])
+
+    df['poisson_pval'] = df.apply(lambda x: poisson_pval(x), axis=1)
+    # fisher exact test
+    def fisher_pval(x):
+        """P-value for the Fisher's exact test"""
+        table = [[x['observed_nonsynonymous'], x['nonsynonymous_opportunity'] - x['observed_nonsynonymous']], 
+                [x['synonymous'], x['synonymous_opportunity'] - x['synonymous']]
+                ]
+        odds, pval = fisher_exact(table, alternative='greater')
+        return pd.Series({'fisher_odds': odds, 'fisher_pval': pval})
+    
+    df[['fisher_odds', 'fisher_pval']] = df.apply(fisher_pval, axis=1)
+
+    def chi2_pval(x):
+        """P-value for Chi2 test"""
+        gene_mutation_rate = (x['observed_nonsynonymous'] + x['synonymous']) / (x['nonsynonymous_opportunity'] + x['synonymous_opportunity'])
+        expected_synonymous = gene_mutation_rate * x['synonymous_opportunity']
+        expected_nonsynonymous = gene_mutation_rate * x['nonsynonymous_opportunity']
+        obs = [x['observed_nonsynonymous'], x['synonymous']]
+        exp = [expected_nonsynonymous, expected_synonymous]
+
+        statistic, pval = chisquare(f_obs=obs, f_exp=exp)
+        return pd.Series({'chi2': statistic, 'chi2_pval': pval})
+
+    df[['chi2', 'chi2_pval']] = df.apply(chi2_pval, axis=1)
+
+    return df
