@@ -251,16 +251,13 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     # 5. Reorder columns
     counts_df = counts_df[all_classes]
 
-    # 6. Filter genes with at least 5 total mutations
-    print(len(counts_df))
+    # 6. Filter genes with at least 5 total mutations))
     counts_df = counts_df[counts_df.sum(axis=1) >= 5]
-    print(len(counts_df))
-
+    
     # 7. Normalize by CDS length
     counts_df = counts_df.join(opportunities_df['CDS_length'], how='left')
     df = pd.merge(counts_df, opportunities_df[['Hugo_Symbol','synonymous_opportunity', 'nonsynonymous_opportunity']], how='inner', left_index=True, right_on='Hugo_Symbol')
 
- 
     df['observed_nonsynonymous'] = df[non_syn_classes].sum(axis=1)
 
     # adjust nonsynonymous opportunities to include indels
