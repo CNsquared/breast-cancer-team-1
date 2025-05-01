@@ -270,7 +270,6 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     df['NS_SNV'] = df['Missense_Mutation'] + df['Nonsense_Mutation'] + df['Nonstop_Mutation']
     df['nonsynonymous_opportunity'] = df['nonsynonymous_opportunity'] * (1 + ((df['Indels'] + .5)/(df['NS_SNV'] + .5)).mean())
 
-    # 3. Calculate dS = observed_synonymous / synonymous_opportunity
     df['dS'] = df.apply(
         lambda x: np.nan if x['synonymous_opportunity'] == 0 else x['synonymous'] / x['synonymous_opportunity'],
         axis=1
@@ -281,7 +280,18 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     )
 
     df['dN/dS'] = df['dN'] / df['dS']
-    #df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
+    # replace inf with NaN
+    df['dN/dS'] = df['dN/dS'].replace([np.inf, -np.inf], np.nan)
+
+    # # 3. Calculate dS = observed_synonymous / synonymous_opportunity
+    # df['dS'] = df['synonymous'] / df['synonymous_opportunity']
+
+    # # 4. Calculate dN = observed_nonsynonymous / nonsynonymous_opportunity
+    # df['dN'] = df['observed_nonsynonymous'] / df['nonsynonymous_opportunity']
+
+    # # 5. Calculate dN/dS ratio
+    # df['dN/dS'] = df['dN'] / df['dS']
+    # df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
     return df
 
 def get_pval(df:pd.DataFrame) -> pd.DataFrame:
@@ -306,34 +316,4 @@ def get_pval(df:pd.DataFrame) -> pd.DataFrame:
     Returns:
         df (pd.DataFrame): DataFrame with p-values added
     """
-    # poisson exact test
-    def poisson_pval(x):
-        """P-value for observed nonsynonymous mutation count of the gene. Under null, expected should be equal to the observed synonymous mutations times the ratio of nonsynonymous to synonymous opportunities."""
-        return 1 - poisson.cdf(x['observed_nonsynonymous']-1, x['synonymous']*x['nonsynonymous_opportunity']/x['synonymous_opportunity'])
-
-    df['poisson_pval'] = df.apply(lambda x: poisson_pval(x), axis=1)
-    # fisher exact test
-    def fisher_pval(x):
-        """P-value for the Fisher's exact test"""
-        table = [[x['observed_nonsynonymous'], x['nonsynonymous_opportunity'] - x['observed_nonsynonymous']], 
-                [x['synonymous'], x['synonymous_opportunity'] - x['synonymous']]
-                ]
-        odds, pval = fisher_exact(table, alternative='greater')
-        return pd.Series({'fisher_odds': odds, 'fisher_pval': pval})
-    
-    df[['fisher_odds', 'fisher_pval']] = df.apply(fisher_pval, axis=1)
-
-    def chi2_pval(x):
-        """P-value for Chi2 test"""
-        gene_mutation_rate = (x['observed_nonsynonymous'] + x['synonymous']) / (x['nonsynonymous_opportunity'] + x['synonymous_opportunity'])
-        expected_synonymous = gene_mutation_rate * x['synonymous_opportunity']
-        expected_nonsynonymous = gene_mutation_rate * x['nonsynonymous_opportunity']
-        obs = [x['observed_nonsynonymous'], x['synonymous']]
-        exp = [expected_nonsynonymous, expected_synonymous]
-
-        statistic, pval = chisquare(f_obs=obs, f_exp=exp)
-        return pd.Series({'chi2': statistic, 'chi2_pval': pval})
-
-    df[['chi2', 'chi2_pval']] = df.apply(chi2_pval, axis=1)
-
-    return df
+    # poi
