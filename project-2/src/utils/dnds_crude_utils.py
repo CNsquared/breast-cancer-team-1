@@ -18,7 +18,7 @@ def get_counts_df(df_mut):
     # 3. Group and pivot to get counts per gene per class
     mutation_counts = df_mut.groupby(['Hugo_Symbol', 'mutation_class']).size()
     counts_df = mutation_counts.unstack(fill_value=0)
-
+    print(counts_df.columns)
     # 4. Ensure all columns exist
     for col in all_classes:
         if col not in counts_df.columns:
@@ -228,7 +228,16 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     
     # 2. Define categories and order
     syn_col = 'synonymous'
-    non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
+    non_syn_classes = [
+        'Frame_Shift_Del', 
+        'Frame_Shift_Ins', 
+        'In_Frame_Del', 
+        'In_Frame_Ins',  
+        'Missense_Mutation', 
+        'Nonsense_Mutation', 
+        'Nonstop_Mutation',
+        'Translation_Start_Site'
+    ]
     all_classes = [syn_col] + non_syn_classes
 
     # 3. Group and pivot to get counts per gene per class
@@ -243,20 +252,23 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     counts_df = counts_df[all_classes]
 
     # 6. Filter genes with at least 5 total mutations
+    print(len(counts_df))
     counts_df = counts_df[counts_df.sum(axis=1) >= 5]
+    print(len(counts_df))
 
     # 7. Normalize by CDS length
     counts_df = counts_df.join(opportunities_df['CDS_length'], how='left')
     df = pd.merge(counts_df, opportunities_df[['Hugo_Symbol','synonymous_opportunity', 'nonsynonymous_opportunity']], how='inner', left_index=True, right_on='Hugo_Symbol')
 
     # 2. Compute observed nonsynonymous as sum of all non-synonymous classes
-    nonsyn_cols = [
-        "Missense_Mutation",
-        "Nonsense_Mutation",
-        "Translation_Start_Site",
-        "Nonstop_Mutation"
-    ]
-    df['observed_nonsynonymous'] = df[nonsyn_cols].sum(axis=1)
+
+    df['observed_nonsynonymous'] = df[non_syn_classes].sum(axis=1)
+
+
+    # adjust nonsynonymous opportunities to include indels
+    df['Indels'] = df['Frame_Shift_Del'] + df['Frame_Shift_Ins'] + df['In_Frame_Del'] + df['In_Frame_Ins']
+    df['NS_SNV'] = df['Missense_Mutation'] + df['Nonsense_Mutation'] + df['Nonstop_Mutation']
+    df['nonsynonymous_opportunity'] = df['nonsynonymous_opportunity'] * (1 + ((df['Indels'] + .5)/(df['NS_SNV'] + .5)).mean())
 
     # 3. Calculate dS = observed_synonymous / synonymous_opportunity
     df['dS'] = df['synonymous'] / df['synonymous_opportunity']
@@ -266,7 +278,7 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
 
     # 5. Calculate dN/dS ratio
     df['dN/dS'] = df['dN'] / df['dS']
-    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
+    #df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
     return df
 
 def get_pval(df:pd.DataFrame) -> pd.DataFrame:
