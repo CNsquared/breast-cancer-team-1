@@ -104,6 +104,60 @@ def translate(seq):
             protein+= table[codon] 
     return protein 
 
+def precompute_codon_opportunities():
+    bases = ['A', 'C', 'G', 'T']
+    codon_opportunity = {}
+
+    for b1 in bases:
+        for b2 in bases:
+            for b3 in bases:
+                codon = b1 + b2 + b3
+                ref_aa = translate(codon)
+                syn_count = 0
+                nonsyn_count = 0
+
+                for pos in range(3):
+                    orig_base = codon[pos]
+                    for alt_base in bases:
+                        if alt_base == orig_base:
+                            continue
+                        alt_codon = codon[:pos] + alt_base + codon[pos+1:]
+                        alt_aa = translate(alt_codon)
+                        
+                        if alt_aa == ref_aa:
+                            syn_count += 1
+                        else:
+                            nonsyn_count += 1
+                codon_opportunity[codon] = (syn_count, nonsyn_count)
+
+    return codon_opportunity
+
+def get_s_ns_opportunities_fast(df_sizes: pd.DataFrame, codon_opportunity: dict) -> pd.DataFrame:
+    syn_ops = []
+    nonsyn_ops = []
+
+    for gene, row in df_sizes.iterrows():
+        seq = row["CDS sequence"]
+        syn_count = 0
+        nonsyn_count = 0
+
+        if seq:
+            for i in range(0, len(seq) - 2, 3):
+                codon = seq[i:i+3]
+                if codon in codon_opportunity:
+                    syn, nonsyn = codon_opportunity[codon]
+                    syn_count += syn
+                    nonsyn_count += nonsyn
+                else:
+                    pass
+
+        syn_ops.append(syn_count)
+        nonsyn_ops.append(nonsyn_count)
+
+    df_sizes["synonymous_opportunity"] = syn_ops
+    df_sizes["nonsynonymous_opportunity"] = nonsyn_ops
+    return df_sizes
+
 def get_s_ns_opportunities(df_sizes: pd.DataFrame) -> pd.DataFrame:
     bases = ['A', 'C', 'G', 'T']
 
