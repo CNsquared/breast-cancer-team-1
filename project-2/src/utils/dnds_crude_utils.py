@@ -271,12 +271,15 @@ def calculate_dnds(df_mut, opportunities_df) -> pd.DataFrame:
     df['nonsynonymous_opportunity'] = df['nonsynonymous_opportunity'] * (1 + ((df['Indels'] + .5)/(df['NS_SNV'] + .5)).mean())
 
     # 3. Calculate dS = observed_synonymous / synonymous_opportunity
-    df['dS'] = df['synonymous'] / df['synonymous_opportunity']
+    df['dS'] = df.apply(
+        lambda x: np.nan if x['synonymous_opportunity'] == 0 else x['synonymous'] / x['synonymous_opportunity'],
+        axis=1
+    )
+    df['dN'] = df.apply(
+        lambda x: np.nan if x['nonsynonymous_opportunity'] == 0 else x['observed_nonsynonymous'] / x['nonsynonymous_opportunity'],
+        axis=1
+    )
 
-    # 4. Calculate dN = observed_nonsynonymous / nonsynonymous_opportunity
-    df['dN'] = df['observed_nonsynonymous'] / df['nonsynonymous_opportunity']
-
-    # 5. Calculate dN/dS ratio
     df['dN/dS'] = df['dN'] / df['dS']
     #df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=['dN/dS'])
     return df
