@@ -18,6 +18,8 @@ def evalAccuracy(calculated_ranks, baseline_ranks):
     # --- DCG  --- WANT CLOSER TO 1
     # DCG is a measure of ranking quality that takes into account the position of relevant items.
     # It is calculated as the sum of the relevance of each relevant item, discounted by its position in the ranking.
+    
+    #Weighted relevance priotizing the top genes
     dcg = 0.0
     for i, g in enumerate(sorted_genes):
         if g in driver_genes:
@@ -26,6 +28,8 @@ def evalAccuracy(calculated_ranks, baseline_ranks):
     
     # --- Bpref --- WANT CLOSER TO 1
     # Bpref is a measure of ranking quality that takes into account the number of relevant items ranked above each relevant item.
+    
+    #Relevance that focuses on not having baseline driver geenes super far in the bottom
     R = len(driver_genes)
     bp_sum = 0.0
     rel_seen = 0
@@ -41,6 +45,8 @@ def evalAccuracy(calculated_ranks, baseline_ranks):
             
     # --- Accuracy --- WANT CLOSER TO 1
     # What percent of ground truth genes are missing from the top
+    
+    #occurance count
     top_num = len(driver_genes)
     top_genes = set(sorted_genes[:top_num])
     missing = len(driver_genes - top_genes)
@@ -65,7 +71,7 @@ def compareRankings(calculated_ranks, baseline_ranks):
 
     # display as DataFrame for clarity
     df_gene_ranks = pd.DataFrame([
-        {"Gene": gene, "IntOGen_Rank": ranks[0], "dN_dS_Rank": ranks[1]}
+        {"Gene": gene, "Baseline_Rank": ranks[0], "dN_dS_Rank": ranks[1]}
         for gene, ranks in mapping_intogen_to_dn_ds.items()
     ])
     
