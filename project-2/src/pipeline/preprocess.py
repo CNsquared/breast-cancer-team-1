@@ -90,94 +90,105 @@ def filter_fasta_and_get_cds_lengths() -> pd.DataFrame:
     fasta_out = "data/processed/gencode.v23lift37.pc_transcripts.transcripts_in_TCGA_MAF.fa"
     CDS_length_table = "data/processed/gencode.v23lift37.pc_transcripts.transcripts_in_TCGA_MAF.cds_lengths.tsv"
 
-    # 1. Read TSV into DataFrame and build mapping Transcript_ID -> Hugo_Symbol
+    # 1. Load TSV and mapping
     tsv = pd.read_csv(tsv_path, sep="\t", dtype=str)
-    if "Transcript_ID" not in tsv.columns or "Hugo_Symbol" not in tsv.columns:
-        raise RuntimeError("TSV must contain 'Transcript_ID' and 'Hugo_Symbol' columns")
     mapping = dict(zip(tsv["Transcript_ID"], tsv["Hugo_Symbol"]))
-    ids = set(mapping.keys())
+    ids      = set(mapping)
 
-    # 2. Iterate FASTA, filter entries, compute CDS length, and write filtered FASTA
-    results = []
-    with open(fasta_in, "r") as fin, open(fasta_out, "w") as fout:
-        lines = iter(fin)
-        for line in lines:
-            if not line.startswith(">"):
-                continue
-            header = line.rstrip("\n")
-            transcript_full = header[1:].split()[0]
-            transcript = transcript_full.split(".")[0]
-            if transcript in ids:
-                # write header and sequence line
-                fout.write(header + "\n")
-                seq_line = next(lines, "")
-                fout.write(seq_line)
-                # extract CDS:start-end
-                m = re.search(r"CDS:(\d+)-(\d+)", header)
-                if m:
-                    start, end = map(int, m.groups())
-                    cds_length = end - start + 1
-                else:
-                    cds_length = None
-                # collect result
-                results.append({
-                    "Hugo_Symbol": mapping[transcript],
-                    "Transcript_ID": transcript,
-                    "CDS_length": cds_length
-                })
-
-    # 3. Build DataFrame, sort by Hugo_Symbol, and save to TSV
-    df = pd.DataFrame(results)
-    df_sorted = df.sort_values("Hugo_Symbol").reset_index(drop=True)
-    # df_sorted.to_csv(CDS_length_table, index=False, sep="\t")
-
-    print(f"Filtered FASTA written to {fasta_out}")
-    print(f"CDS lengths saved to {CDS_length_table}")
-
+    # 2. Parse FASTA into dict: transcript_id -> (header still containing separator "|", entire transcript sequence)
     transcripts = {}
-    with open(fasta_out, "r") as f:
-        header = None
-        seq_chunks = []
+    with open(fasta_in, "r") as f:
+        header = None; seq_chunks = []
         for line in f:
             line = line.rstrip("\n")
             if line.startswith(">"):
-                if header is not None:
+                if header:
                     full_id = header[1:].split("|")[0]
                     base_id = full_id.split(".")[0]
                     transcripts[base_id] = (header, "".join(seq_chunks))
-                header = line
-                seq_chunks = []
+                header = line; seq_chunks = []
             else:
                 seq_chunks.append(line)
-        # add last record
-        if header is not None:
+        if header:
             full_id = header[1:].split("|")[0]
             base_id = full_id.split(".")[0]
             transcripts[base_id] = (header, "".join(seq_chunks))
+        
+    results = []
+    
+    with open(fasta_out, "w") as fout:
+        for tx_id in ids:
+            gene = mapping[tx_id]
+            entry = transcripts.get(tx_id)
 
-    # 2. Extract CDS sequences based on header coordinates and verify frame
-    cds_seqs = []
-    for gene, row in df_sorted.iterrows():
-        tid = row["Transcript_ID"]
-        if tid not in transcripts:
-            print(f"Warning: transcript {tid} for gene {gene} not found in FASTA.")
-            cds_seqs.append(None)
-            continue
+            # if exact transcript not found, fallback to any transcripts matching gene
+            if entry is None:
+                # print(f"Warning: {tx_id} not found. Falling back on Hugo_Symbol {gene}.")
+                candidates = []
+                for bid, (hdr, seq) in transcripts.items():
+                    # match gene field in header: |GENE|
+                    if f"|{gene}|" in hdr:
+                        m = re.search(r"CDS:(\d+)-(\d+)", hdr)
+                        if m:
+                            start, end = map(int, m.groups())
+                            cds_len = end - start + 1
+                            candidates.append((bid, hdr, seq, start, end, cds_len))
+                if not candidates:
+                    # print(f"Warning: No fallback transcripts for gene {gene}.")
+                    continue
+                # pick the one with longest CDS
+                candidates.sort(key=lambda x: x[5], reverse=True)
+                chosen = candidates[0]
+                # print(f"  Fallback candidates:")
+                # for bid, hdr, seq, st, en, clen in candidates:
+                #     print(f"    {bid}: CDS:{st}-{en} (len={clen:,})")
+                # print(f"  Chosen: {chosen[0]} with CDS:{chosen[3]}-{chosen[4]} (len={chosen[5]:,})")
+                header, full_seq = chosen[1], chosen[2]
+            else:
+                header, full_seq = entry
 
-        header, full_seq = transcripts[tid]
-        m = re.search(r"CDS:(\d+)-(\d+)", header)
-        if not m:
-            print(f"Warning: CDS coordinates not found in header for {tid}.")
-            cds_seqs.append(None)
-            continue
+            # write full FASTA entry
+            fout.write(header + "\n")
+            for i in range(0, len(full_seq), 60):
+                fout.write(full_seq[i:i+60] + "\n")
 
-        start, end = map(int, m.groups())
-        cds_seq = full_seq[start-1:end]  # 1-based inclusive
-        # if len(cds_seq) % 3 != 0:
-        #     print(f"Warning: CDS sequence length for {tid} is {len(cds_seq)}, not a multiple of 3.")
-        cds_seqs.append(cds_seq)
+            # extract CDS coords
+            m = re.search(r"CDS:(\d+)-(\d+)", header)
+            if not m:
+                print(f"Warning: no CDS coords in header for {tx_id or chosen[0]}")
+                continue
+            start, end = map(int, m.groups())
+            cds_seq    = full_seq[start-1:end]
+            cds_len    = len(cds_seq)
+            # if cds_len % 3 != 0:
+            #     print(f"Warning: CDS length {cds_len:,} not multiple of 3 for {tx_id or chosen[0]}")
 
-    # 3. Append to df_sizes
-    df_sorted["CDS sequence"] = cds_seqs
+            results.append({
+                "Hugo_Symbol"   : gene,
+                "Transcript_ID" : tx_id,
+                "CDS_start"     : start,
+                "CDS_end"       : end,
+                "CDS_length"    : cds_len,
+                "CDS sequence"  : cds_seq
+            })
+            
+
+    # 4. Save CSV
+    df_sizes = pd.DataFrame(results)
+
+    # Warn if any Hugo_Symbol appears more than once
+    dup_counts = df_sizes['Hugo_Symbol'].value_counts()
+    dups = dup_counts[dup_counts > 1].index.tolist()
+    dup_genes = ", ".join(dups)
+    if dups:
+        print(f"\tWarning: {len(dups):,} transcripts found for genes: {dup_genes}")
+
+    # Keep largest CDS size per gene
+    print(f"\t—> Keeping largest CDS size per gene...")
+
+    df_sorted = df_sizes.sort_values("CDS_length", ascending=False)
+    df_sorted = df_sorted.drop_duplicates(subset="Hugo_Symbol", keep="first")
+    print(df_sorted['Hugo_Symbol'].unique())
     df_sorted.to_csv(CDS_length_table, index=False, sep="\t")
+
     return df_sorted

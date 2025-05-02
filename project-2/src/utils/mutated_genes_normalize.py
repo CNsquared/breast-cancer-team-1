@@ -17,25 +17,31 @@ def get_normalized_counts(df_mut: pd.DataFrame) -> pd.DataFrame:
     # 0. Load gene sizes
     sizes_path = "data/processed/gencode.v23lift37.pc_transcripts.transcripts_in_TCGA_MAF.cds_lengths.tsv"
     df_sizes = pd.read_csv(sizes_path, sep="\t", dtype={'Hugo_Symbol': str, 'CDS_length': int})
-
+    # print(df_sizes.head())
+    
     # Warn if any Hugo_Symbol appears more than once
     dup_counts = df_sizes['Hugo_Symbol'].value_counts()
     dups = dup_counts[dup_counts > 1].index.tolist()
+    
     if dups:
-        print(f"Warning: multiple CDS_length entries found for genes: {dups}")
+        print(f"\tStill: {len(dups):,} duplicate Hugo_Symbols found in CDS lengths. Keeping the largest CDS length for each gene.")
+        print(f"\tDuplicate genes: {', '.join(dups)}")
+
 
     # Keep largest CDS size per gene
-    print(f"Keeping largest CDS size per gene...")
+    print(f"\tUsing largest CDS size per gene...")
     df_sizes = (
         df_sizes
         .sort_values('CDS_length', ascending=False)
         .drop_duplicates('Hugo_Symbol')
-        .set_index('Hugo_Symbol')
+        .set_index('Hugo_Symbol') # Set Hugo_Symbol as index, no longer has it as a column
     )
-
+    
+    num_genes = df_sizes.index.nunique()
+    print(f"\t{num_genes:,} genes with unique CDS_length entries from Gencode v23lift37")
     # 2. Define categories and order
     syn_col = 'synonymous'
-    non_syn_classes = ["Missense_Mutation", "Nonsense_Mutation", "Translation_Start_Site", "Nonstop_Mutation"]
+    non_syn_classes = ["Frame_Shift_Del", "Frame_Shift_Ins", "In_Frame_Del", "In_Frame_Ins", "Missense_Mutation", "Nonsense_Mutation", "Nonstop_Mutation", "Translation_Start_Site",]
     all_classes = [syn_col] + non_syn_classes
 
     # 3. Group and pivot to get counts per gene per class
