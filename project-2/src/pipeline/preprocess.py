@@ -41,9 +41,6 @@ def preprocess_mutations():
     # filter out hypermutators
     df_mut = df_mut[df_mut['patient_id'].isin(normal_mutators)]
 
-    # write output
-    df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
-
     df_mut['mutation_class'] = df_mut.apply(
         lambda x: x['Variant_Classification']
                 if x['mutation_type'] == 'non-synonymous'
@@ -51,6 +48,9 @@ def preprocess_mutations():
         axis=1
     )
 
+   # write output
+    df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
+    
     # return output
     return df_mut
 
