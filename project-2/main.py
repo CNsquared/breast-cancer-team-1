@@ -12,7 +12,7 @@ def main():
 
     print("Get normalized counts...")
     normalized_counts = run_analysis.run_CDS_length_normalized(mutations_processed)
-    normalized_counts.to_csv('results/tables/normalized_counts.tsv', sep="\t", index=False)
+    normalized_counts.to_csv('results/tables/normalized_counts.tsv', sep="\t", index=True) # index=True to keep Hugo_Symbol
     print("Normalized counts saved to results/tables/normalized_counts.tsv")
 
     print("Running simple dN/dS Analysis")
