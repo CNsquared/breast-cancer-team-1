@@ -12,35 +12,40 @@ def preprocess_mutations():
 
     # read in raw mutation data
     df_mut = pd.read_csv('data/raw/TCGA.BRCA.mutations.txt', sep='\t')
-
+    initial_mutation = len(df_mut)
+    inital_genes = df_mut['Hugo_Symbol'].nunique()
+    initial_patient = df_mut['patient_id'].nunique()
+    print(f"\t{initial_mutation:,} mutations in {inital_genes:,} genes from {initial_patient:,} patients loaded")
+    
     # exclude samples the didn't pass QC
     df_mut = df_mut[df_mut['FILTER'] == 'PASS']
 
-    # exclude indels
+    # exclude indels (no more, we're including indels now)
     #df_mut = df_mut[df_mut['Variant_Type'] == 'SNP']
 
-    # define mutation type
+    # define mutation type (Silent in a CDS region is synonymous and all other types in CDS region is nonsynonymous. Those not in a CDS region is None)
     df_mut.loc[:,'mutation_type'] = df_mut.apply(lambda row: 'synonymous' if row['Variant_Classification'] == 'Silent' else 'non-synonymous' if row['CDS_position'] != '.' else None, axis=1)
 
-    # drop rows where mutation_type is None
+    # drop rows where mutation_type is None (non-coding mutations)
     df_mut = df_mut.dropna(subset=['mutation_type'])
 
     # remove genes that don't have a symbol (they all have symbols FYI)
     df_mut = df_mut[df_mut['Hugo_Symbol'].notna()]
 
-    # remove rows without a positiion
+    # remove rows without a position (they all have a start position FYI)
     df_mut = df_mut[df_mut['Start_Position'].notna()]
 
     # filter out hypermutators
-    # count mutations per patient
+    # count PASS coding synonymous and nonsynonymous SNPs and indels per patient
     mutation_counts = df_mut['patient_id'].value_counts()
 
-    # keep only patients with <= 500 mutations
+    # a mask for only patients with <= 500 mutations
     normal_mutators = mutation_counts[mutation_counts <= HYPERMUTATOR_THRESHOLD].index
 
-    # filter out hypermutators
+    # keep only the non-hypermutators
     df_mut = df_mut[df_mut['patient_id'].isin(normal_mutators)]
 
+    # mutation_class will be used for stacked bar plot with detailed non-synonymous subtype breakdown (ex. Frame_Shift_Ins, Missense_Mutation, ...)
     df_mut['mutation_class'] = df_mut.apply(
         lambda x: x['Variant_Classification']
                 if x['mutation_type'] == 'non-synonymous'
@@ -48,7 +53,12 @@ def preprocess_mutations():
         axis=1
     )
 
-   # write output
+    filter_mutation = len(df_mut)
+    filter_genes = df_mut['Hugo_Symbol'].nunique()
+    filter_patient = df_mut['patient_id'].nunique()
+    print(f"\t{filter_mutation:,} ({(filter_mutation*100)/initial_mutation:.1f}%) mutations in {filter_genes:,} ({(filter_genes*100)/inital_genes:.1f}%) genes from {filter_patient:,} ({(filter_patient*100)/initial_patient:.1f}%) patients used for analysis")
+
+    # write output
     df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
 
     # return output
