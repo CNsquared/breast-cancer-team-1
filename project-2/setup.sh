@@ -10,8 +10,6 @@
 conda env create -f project2_env.yml
 conda env update -f project2_env.yml
 
-set -e  # Exit immediately if a command exits with a non-zero status.
-
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate project2_env
 
