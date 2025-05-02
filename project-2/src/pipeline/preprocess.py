@@ -50,7 +50,7 @@ def preprocess_mutations():
 
    # write output
     df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
-    
+
     # return output
     return df_mut
 
@@ -169,5 +169,9 @@ def filter_fasta_and_get_cds_lengths() -> pd.DataFrame:
 
     # 3. Append to df_sizes
     df_sorted["CDS sequence"] = cds_seqs
+
+    df_sorted = df_sorted.sort_values("CDS_length", ascending=False)
+    df_sorted = df_sorted.drop_duplicates(subset="Hugo_Symbol", keep="first")
+
     df_sorted.to_csv(CDS_length_table, index=False, sep="\t")
     return df_sorted
