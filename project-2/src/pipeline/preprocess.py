@@ -12,7 +12,8 @@ def preprocess_mutations():
 
     # read in raw mutation data
     df_mut = pd.read_csv('data/raw/TCGA.BRCA.mutations.txt', sep='\t')
-
+    print(f"\t{len(df_mut):,} mutations and {df_mut['patient_id'].nunique():,} loaded")
+    
     # exclude samples the didn't pass QC
     df_mut = df_mut[df_mut['FILTER'] == 'PASS']
 
@@ -49,7 +50,9 @@ def preprocess_mutations():
         axis=1
     )
 
-   # write output
+    print(f"\t{len(df_mut):,} mutations and {df_mut['patient_id'].nunique():,} used for analysis")
+
+    # write output
     df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
     
     # return output
