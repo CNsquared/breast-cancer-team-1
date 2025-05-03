@@ -405,7 +405,7 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
 
     # Create the Venn diagram - store the output to modify fonts
     v = venn3([set_top_n, set_dNdScv, set_intogen],
-            set_labels=('Top '+ str(top_n) + ' dN/dS', 'dNdScv traditional model', 'IntOGen Drivers'),
+            set_labels=('Our dN/dS significant', 'dNdScv traditional model', 'IntOGen Drivers'),
             set_colors=('skyblue', 'lightgreen', 'lightcoral'), # Optional: set colors
             alpha=0.7 # Optional: set transparency
             )
