@@ -6,8 +6,8 @@ from matplotlib_venn import venn3, venn3_circles
 import seaborn as sns
 import numpy as np
 
-IntOGen = '/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-2/data/processed/IntOGen-DriverGenes_TCGA_WXS_BRCA.csv'
-df_intogen = pd.read_csv(IntOGen, dtype={'Symbol': str, 'Mutations': int})
+IntOGen = 'data/raw/IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv'
+df_intogen = pd.read_csv(IntOGen, dtype={'Symbol': str, 'Mutations': int}, sep='\t')
 intogen_genes = list(df_intogen['Symbol'].unique())
 
 dnds_qallsubs_cv_significant = ["TP53",     "PIK3CA",   "HIST1H3B", "AKT1",     "PTEN",     "FOXA1",    "CBFB",     "MAP2K4",   "CASP8",    "RUNX1",    "ERBB2",    "GATA3",    "MAP3K1",   "CDH1",     "NCOR1",    "KMT2C",    "RB1",      "ARID1A",   "NF1"]
