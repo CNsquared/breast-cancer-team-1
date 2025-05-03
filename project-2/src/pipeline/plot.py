@@ -368,7 +368,7 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
     # Define bins (calculate once for consistency)
     # Adjust range based on your data, maybe exclude extreme outliers if needed
     min_val = max(-1, dnds_values.min()) # Limit lower bound if desired
-    max_val = min(15, dnds_values.max())+0.5 # Limit upper bound if desired
+    max_val = max(15, dnds_values.max())+0.5 # Limit upper bound if desired
     bins = np.linspace(min_val, max_val, 101) # 100 bins between min_val and max_val
 
     # Plot histograms: non-significant first, then significant on top
