@@ -14,4 +14,4 @@ dependencies:
   - gdown
   - statsmodels
   - pyyaml
-  - venn2
+  - matplotlib-venn
