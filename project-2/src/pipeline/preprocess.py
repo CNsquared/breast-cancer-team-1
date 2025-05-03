@@ -188,7 +188,6 @@ def filter_fasta_and_get_cds_lengths() -> pd.DataFrame:
 
     df_sorted = df_sizes.sort_values("CDS_length", ascending=False)
     df_sorted = df_sorted.drop_duplicates(subset="Hugo_Symbol", keep="first")
-    print(df_sorted['Hugo_Symbol'].unique())
     df_sorted.to_csv(CDS_length_table, index=False, sep="\t")
 
     return df_sorted
