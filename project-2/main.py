@@ -27,6 +27,9 @@ def main():
     plot.plot_normalized_stacked_bar(normalized_counts, top_n=46, save_path="results/figures/normalized_stacked_bar_plot.png")
     print("CDS length normalized stacked bar plots using results/tables/normalized_counts.tsv saved to results/figures/normalized_stacked_bar_plots.png")
 
+    plot.plot_normalized_stacked_bar_horizontal(normalized_counts, top_n=46, save_path="results/figures/normalized_stacked_bar_plot_horizontal.png")
+    print("CDS length normalized stacked bar plots using results/tables/normalized_counts.tsv saved to results/figures/normalized_stacked_bar_plot_horizontal.png")
+
     plot.plot_dNdS_stacked_bar(dnds_simple_results, columns_to_plot=["dN/dS"], top_n=46, pval_col='fisher_pval', pval_threshold=0.05, save_path="results/figures/dNdS_stacked_bar_plot.png")
     print("dN/dS stacked bar plots using results/tables/dnds_simple_results.tsv saved to results/figures")
 

@@ -10,8 +10,12 @@ IntOGen = 'data/raw/IntOGen-DriverGenes_TCGA_WXS_BRCA.tsv'
 df_intogen = pd.read_csv(IntOGen, dtype={'Symbol': str, 'Mutations': int}, sep='\t')
 intogen_genes = list(df_intogen['Symbol'].unique())
 
-dnds_qallsubs_cv_significant = ["TP53",     "PIK3CA",   "HIST1H3B", "AKT1",     "PTEN",     "FOXA1",    "CBFB",     "MAP2K4",   "CASP8",    "RUNX1",    "ERBB2",    "GATA3",    "MAP3K1",   "CDH1",     "NCOR1",    "KMT2C",    "RB1",      "ARID1A",   "NF1"]
-
+dnds_qallsubs_cv_significant = [
+    "TP53", "PIK3CA", "AKT1", "CDH1", "PTEN", "KMT2C", "MAP2K4", "MAP3K1", "FOXA1",
+    "RUNX1", "GATA3", "TBX3", "RB1", "PIK3R1", "CBFB", "ARID1A", "GPS2", "NF1",
+    "NCOR1", "CTCF", "CASP8", "SPEN", "ERBB2", "HIST1H3B", "MEN1", "BRCA1",
+    "ZFP36L1", "CDKN1B"
+]
 # Define the columns representing mutation types in the desired plotting order
 mutation_columns = [
     'synonymous',
@@ -77,7 +81,7 @@ def plot_raw_stacked_bar(df, columns_to_plot=mutation_columns, top_n=46, IntOGen
 
     # Customize the plot
     # Labels and styling
-    ax.set_title(f'Top {top_n} Most Mutated Genes by Raw Count in BRCA (n=773)', fontsize=22)
+    ax.set_title(f'Top {top_n} Most Mutated Genes by Raw Count in TCGA.BRCA (n=773)', fontsize=22)
     ax.tick_params(axis='y', labelsize=18)
     ax.set_xlabel('', fontsize=18)
     ax.set_ylabel('Number of PASS Coding Mutations', fontsize=20)
@@ -118,9 +122,35 @@ def plot_raw_stacked_bar(df, columns_to_plot=mutation_columns, top_n=46, IntOGen
         Line2D([0], [0], marker='^', color='black', linestyle='None', markersize=8,
                label='dNdScv Significant')
     ]
+
+    our_significant_dnds_genes_by_fischer_for_venn_diagram = []
+    # Calculate total height for each bar (sum of plotted columns for df_top)
+    # Ensure we use the same fillna logic as in plotting
+    # Disable the SettingWithCopyWarning
+    pd.options.mode.chained_assignment = None
+    df_top['Total_Height'] = df_top[valid_columns_to_plot].fillna(0).sum(axis=1)
+
+    for i, gene in enumerate(gene_symbols):
+        # Check p-value condition (handle potential NaNs)
+        pval = df_top.loc[gene, 'fisher_pval']
+        if pd.notna(pval) and pval < 0.05:
+            our_significant_dnds_genes_by_fischer_for_venn_diagram.append(gene)
+            bar_height = df_top.loc[gene, 'Total_Height']
+            # Place '+' at the index of the gene name and slightly above the dNdS y value
+            ax.text(i, bar_height, '+', ha='center', va='bottom', fontsize=14, color='red', fontweight='bold') # Make it stand out
+            if pd.notna(pval) and pval < 0.05/len(df):
+                bar_height = df_top.loc[gene, 'Total_Height']
+                # Place '+' at the index of the gene name and slightly above the dNdS y value
+                offset = max(df_top['Total_Height'])/50
+                ax.text(i, bar_height+offset, '+', ha='center', va='bottom', fontsize=14, color='red', fontweight='bold') # Make it stand out
+    legend_elements.extend([
+        Line2D([0], [0], linestyle="none", marker='+', color='red', label='+ p < 0.05'),
+        Line2D([0], [0], linestyle="none", marker='+', color='red', label='++ p_Bonferroni < 0.05')
+    ])
     # Create the second legend
     legend2 = ax.legend(handles=legend_elements, title='Annotations', fontsize=12,
                         title_fontsize=16, loc='upper right')
+
     ax.add_artist(legend2)
 
     # 5. Save the plot if save_path is provided
@@ -209,6 +239,7 @@ def plot_normalized_stacked_bar(df, columns_to_plot=mutation_columns, top_n=46, 
         Line2D([0], [0], marker='^', color='black', linestyle='None', markersize=8,
                label='dNdScv Significant')
     ]
+
     # Create the second legend
     legend2 = ax.legend(handles=legend_elements, title='Annotations', fontsize=12,
                         title_fontsize=16, loc='upper right')
@@ -217,6 +248,87 @@ def plot_normalized_stacked_bar(df, columns_to_plot=mutation_columns, top_n=46, 
     # 5. Save the plot if save_path is provided
     plt.savefig(save_path, bbox_inches='tight', dpi=500)
 
+def plot_normalized_stacked_bar_horizontal(
+    df,
+    columns_to_plot=None,
+    top_n=46,
+    IntOGen_list=None,
+    dNdScv_list=None,
+    save_path="results/figures/normalized_stacked_bar_plot_horizontal.png"
+):
+    if columns_to_plot is None:
+        columns_to_plot = [col for col in df.columns if col not in ['Hugo_Symbol', 'Total_Mutations']]
+    # Ensure Hugo_Symbol is the index for easier plotting
+    if 'Hugo_Symbol' in df.columns:
+        df = df.set_index('Hugo_Symbol')
+
+    # Validate columns to plot
+    valid_columns_to_plot = [col for col in columns_to_plot if col in df.columns]
+    if not valid_columns_to_plot:
+        print("Error: None of the specified columns_to_plot exist in the DataFrame.")
+        return
+    elif len(valid_columns_to_plot) < len(columns_to_plot):
+        missing_cols = set(columns_to_plot) - set(valid_columns_to_plot)
+        print(f"Warning: The following columns were not found and ignored: {missing_cols}")
+
+    # Compute total mutations and sort
+    df['Total_Mutations'] = df[valid_columns_to_plot].sum(axis=1)
+    df_sorted = df.sort_values('Total_Mutations', ascending=False)
+    df_top = df_sorted.head(top_n)
+
+    if df_top.empty:
+        print(f"No data to plot for the top {top_n} genes.")
+        return
+
+    # Plot
+    plt.style.use('seaborn-v0_8-talk')
+    fig, ax = plt.subplots(figsize=(10, 20))  # Wider vertically now
+
+    # Horizontal stacked bar plot
+    df_top[valid_columns_to_plot].plot(
+        kind='barh',
+        stacked=True,
+        ax=ax,
+        colormap='tab10'
+    )
+
+    # Title and labels
+    ax.set_title(f'Top {top_n} Most Mutated Genes Normalized by CDS Length in BRCA (n=773)', fontsize=22)
+    ax.set_xlabel('Number of Normalized PASS Coding Mutations', fontsize=20)
+    ax.set_ylabel('')
+
+    # Y-axis gene labels with annotations
+    gene_symbols = df_top.index.tolist()
+    annot_labels = []
+    for gene in gene_symbols:
+        label = ""
+        if IntOGen_list and gene in IntOGen_list:
+            label += '★'
+        if dNdScv_list and gene in dNdScv_list:
+            label += '▲'
+        label += gene
+        annot_labels.append(label)
+
+    ax.set_yticks(range(len(gene_symbols)))
+    ax.set_yticklabels(annot_labels, fontsize=12)
+    ax.tick_params(axis='x', labelsize=18)
+    ax.tick_params(axis='y', labelsize=12)
+
+    # Legends
+    handles1, labels1 = ax.get_legend_handles_labels()
+    legend1 = ax.legend(handles1, labels1, title='Mutation Type', loc='lower right', title_fontsize=16)
+    ax.add_artist(legend1)
+
+    legend_elements = [
+        Line2D([0], [0], marker='*', color='black', linestyle='None', markersize=8, label='IntOGen Driver'),
+        Line2D([0], [0], marker='^', color='black', linestyle='None', markersize=8, label='dNdScv Significant')
+    ]
+    legend2 = ax.legend(handles=legend_elements, title='Annotations', fontsize=12, title_fontsize=16, loc='upper left')
+    ax.add_artist(legend2)
+
+    # Save figure
+    plt.savefig(save_path, bbox_inches='tight', dpi=500)
+    plt.close()
 
 
 def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=intogen_genes, dNdScv_list=dnds_qallsubs_cv_significant, pval_col='fisher_pval', pval_threshold=0.05, save_path="results/figures/dNdS_stacked_bar_plot.png"):
@@ -266,11 +378,11 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
 
     # Plot the specified valid columns in the desired order
     df_top[valid_columns_to_plot].plot(kind='bar', stacked=True, ax=ax,
-                                       colormap='tab10') # Use a colormap
+                                       colormap='tab10', label=None) # Use a colormap
 
     # Customize the plot
     # Labels and styling
-    ax.set_title(f'Top {top_n} Most Mutated Genes by Raw Count in BRCA (n=773)', fontsize=22)
+    ax.set_title(f'Top {top_n} dN/dS genes in TCGA.BRCA (n=773)', fontsize=22)
     ax.tick_params(axis='y', labelsize=18)
     ax.set_xlabel('', fontsize=18)
     ax.set_ylabel('dN/dS', fontsize=20)
@@ -302,7 +414,7 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
     # 6. Original Legend for mutation types
     handles1, labels1 = ax.get_legend_handles_labels()
     legend1 = ax.legend(handles1, labels1, title='Mutation Type', loc='right', title_fontsize=16)
-    ax.add_artist(legend1) # Add the first legend manually
+    #ax.add_artist(legend1) # Add the first legend manually
 
     # 7. Legend for annotation symbols
     legend_elements = [
@@ -311,10 +423,6 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
         Line2D([0], [0], marker='^', color='black', linestyle='None', markersize=8,
                label='dNdScv Significant')
     ]
-    # Create the second legend
-    legend2 = ax.legend(handles=legend_elements, title='Annotations', fontsize=12,
-                        title_fontsize=16, loc='upper right')
-    ax.add_artist(legend2)
 
 
     # --- Add '+' Annotations for significant Fisher Q-value ---
@@ -334,7 +442,22 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
                 bar_height = df_top.loc[gene, 'Total_Height']
                 # Place '+' at the index of the gene name and slightly above the dNdS y value
                 ax.text(i, bar_height, '+', ha='center', va='bottom', fontsize=14, color='red', fontweight='bold') # Make it stand out
+                if pd.notna(pval) and pval < pval_threshold/len(df):
+                    bar_height = df_top.loc[gene, 'Total_Height']
+                    # Place '+' at the index of the gene name and slightly above the dNdS y value
+                    offset = max(df_top['Total_Height'])/50
+                    ax.text(i, bar_height+offset, '+', ha='center', va='bottom', fontsize=14, color='red', fontweight='bold') # Make it stand out
 
+        # Add entries for the '+' and '++' notation
+        legend_elements.extend([
+            Line2D([0], [0], linestyle="none", marker='+', color='red', label='+ p < 0.05'),
+            Line2D([0], [0], linestyle="none", marker='+', color='red', label='++ p_Bonferroni < 0.05')
+        ])
+
+        # Create the second legend
+    legend2 = ax.legend(handles=legend_elements, title='Annotations', fontsize=12,
+                        title_fontsize=16, loc='upper right')
+    ax.add_artist(legend2)
 
 
     # 5. Save the plot if save_path is provided
@@ -405,7 +528,7 @@ def plot_dNdS_stacked_bar(df, columns_to_plot=["dN/dS"], top_n=46, IntOGen_list=
 
     # Create the Venn diagram - store the output to modify fonts
     v = venn3([set_top_n, set_dNdScv, set_intogen],
-            set_labels=('Our dN/dS significant', 'dNdScv traditional model', 'IntOGen Drivers'),
+            set_labels=('Our dN/dS p < 0.05', 'dNdScv traditional model', 'IntOGen Drivers'),
             set_colors=('skyblue', 'lightgreen', 'lightcoral'), # Optional: set colors
             alpha=0.7 # Optional: set transparency
             )
