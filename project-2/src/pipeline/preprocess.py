@@ -60,7 +60,7 @@ def preprocess_mutations():
 
     # write output
     df_mut.to_csv('data/processed/TCGA.BRCA.mutations.qc1.txt', sep='\t', index=False)
-    
+
     # return output
     return df_mut
 
