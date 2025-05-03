@@ -1,5 +1,4 @@
-Team 1: BRCA
-Project 2
+Team 1: BRCA Project 2 - dNdS Implementation and Analysis of TCGA-BRCA
 
 Purpose: Identify driver mutations in BRCA dataset
 
