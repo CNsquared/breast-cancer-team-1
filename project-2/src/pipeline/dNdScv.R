@@ -26,4 +26,4 @@ print(head(sel_cv,10), digits = 3)
 
 #Export dNdScv results as csv file 
 print('Export dNdScv results as csv file')
-write.csv(sel_cv,'./project-2/data/processed/dNdScv_output.csv')
+write.csv(sel_cv,'./project-2/results/tables/dNdScv_output.csv')
