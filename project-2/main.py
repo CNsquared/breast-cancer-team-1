@@ -9,7 +9,7 @@ def main():
 
     print(f"Processing Gencode CDS FASTA sequence using the Transcript ID or Hugo Symbol in the mutation data and getting lengths...")
     df_sizes = preprocess.filter_fasta_and_get_cds_lengths()
-
+    
     print("Get normalized counts...")
     normalized_counts = run_analysis.run_CDS_length_normalized(mutations_processed)
     normalized_counts.to_csv('results/tables/normalized_counts.tsv', sep="\t", index=True) # index=True to keep Hugo_Symbol
