@@ -13,3 +13,5 @@ Then run our pipeline to generate results with our dataset
 conda activate project2_env
 python main.py
 ```
+
+To run dNdScv, run dNdScv.R
