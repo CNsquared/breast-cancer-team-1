@@ -5,11 +5,12 @@ class NMFDecomposer:
     
     Should be able to use different objectve functions (e.g., Frobenius, Kullback-Leibler).
     """
-    def __init__(self, n_components: int, objective_function: str, random_state: int = 42):
+    def __init__(self, n_components: int, objective_function: str, num_factorizations = 100, random_state: int = 42):
         """Initialize NMF model parameters."""
         self.n_components = n_components
         self.random_state = random_state
         self.objective_function = objective_function
+        self.num_factorizations = num_factorizations
 
     def fit(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Run NMF and return W (samples x signatures) and H (signatures x features)."""
