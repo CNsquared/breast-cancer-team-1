@@ -6,10 +6,19 @@ from src.models.nmf_runner import NMFDecomposer
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 
+# paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
 METADATA_PATH = "data/raw/TCGA.BRCA.metadata.txt"
 SIGPROFILER_PATH = "data/raw/sigprofiler_results.txt"
 ASSOCIATION_COLUMNS=['sex','age','cancer_subtype']
+
+# NMF parameters - Identify best parameters for our dataset
+NMF_PARAMS = {
+    'n_components': 5,
+    'objective_function': 'frobenius',
+    'num_factorizations': 100,
+    'random_state': 42
+}
 
 def main():
     #Preprocess MAF and generate mutation matrix
@@ -25,10 +34,8 @@ def main():
 
     # run NMF
     print("Running NMF decomposition...")
-    nmf_model = NMFDecomposer(n_components=5, objective_function="frobenius")
+    nmf_model = NMFDecomposer(**NMF_PARAMS)
     W, H = nmf_model.fit(matrix['X'])
-    stability = nmf_model.get_stability(W)
-    # TODO: do something with stability, not really sure what it looks like
 
     # save NMF results
     joblib.dump(W, "data/processed/W.pkl")
