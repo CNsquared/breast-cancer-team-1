@@ -17,7 +17,9 @@ NMF_PARAMS = {
     'n_components': 5,
     'objective_function': 'frobenius',
     'num_factorizations': 100,
-    'random_state': 42
+    'random_state': 42,
+    'resample_method': 'poisson',
+    'normalization_method': 'GMM'
 }
 
 def main():
