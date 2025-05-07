@@ -35,9 +35,7 @@ class NMFDecomposer:
 
     Resampling methods:
     - poisson: Poisson resampling (default)
-    - random: Random resampling
     - bootstrap: multinomial Bootstrap resampling
-    - none: no resampling
 
     Normalization methods:
     - GMM: Gaussian mixture model (default)
@@ -70,11 +68,44 @@ class NMFDecomposer:
     def resample(self, X: np.ndarray) -> np.ndarray:
         """Resample the data based on the specified method
         
-        poisson resample method: https://www.cell.com/cell-reports/fulltext/S2211-1247(12)00433-0#sec-4
+        multinomial resample method: https://www.cell.com/cell-reports/fulltext/S2211-1247(12)00433-0#sec-4
         """
-        # TODO: placeholder for actual resampling method
-        return X
-    
+        np.random.seed(self.random_state)
+        if self.resample_method == 'poisson':
+            # Poisson resampling, each entry in X is resampled from a Poisson distribution of the same mean
+            return np.random.poisson(X)
+        elif self.resample_method == 'bootstrap':
+            return self.multinomial_bootstrap(X)
+        else:
+            raise ValueError(f"Unknown resample method: {self.resample_method}, please use 'poisson' or 'bootstrap'")
+
+    def multinomial_bootstrap(self, X: np.ndarray) -> np.ndarray:
+        """
+        Apply per-column multinomial bootstrap resampling to matrix M.
+
+        Preserves the column sums of the original matrix M so each person will have the same number of mutations after resampling.
+        
+        Parameters:
+        - X: np.ndarray of shape (n_types, n_samples), integer mutation counts
+        
+        Returns:
+        - X_boot: np.ndarray of shape (n_types, n_samples), resampled counts
+        """
+        rng = np.random.default_rng(self.random_state)
+        n_types, n_samples = X.shape
+        X_boot = np.zeros_like(X)
+
+        for j in range(n_samples):
+            col = X[:, j]
+            total = col.sum()
+            if total == 0:
+                continue
+            probs = col / total
+            X_boot[:, j] = rng.multinomial(total, probs)
+        
+        return X_boot
+
+
     def run(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Run NMF decomposition and return all S and A matrices."""
         S_all = []
