@@ -6,10 +6,14 @@ def build_mutation_matrix(df_mut: pd.DataFrame) -> np.ndarray:
     # TODO: placehodler
     return np.zeros((len(df_mut), len(df_mut)))
 
-def normalize_matrix(X: np.ndarray, method: str = 'row-wise') -> np.ndarray:
+def normalize_matrix(X: np.ndarray, method: str = 'GMM') -> np.ndarray:
     """normalize matrix by method
     
-    should be able to return row-wise, column-wise, z-score, or whatever other methods we want to try
+    should be able to use the following methods (from paper):
+    - GMM: Gaussian mixture model (default)
+    - 100X
+    - log2
+    - None: no normalization.
     """
     # TODO: placeholder
     return X
