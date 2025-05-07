@@ -23,6 +23,7 @@ NMF_PARAMS = {
 }
 
 def main():
+
     #Preprocess MAF and generate mutation matrix
     print("Preprocessing mutation data...")
     pre = MutPreprocessor(MUTATIONS_PATH)
@@ -32,34 +33,47 @@ def main():
 
     # save processed data
     df_mut.to_csv("data/processed/TCGA.BRCA.mutations.qc1.csv", index=False)
-    joblib.dump(matrix, "data/processed/mutation_matrix.pkl")    
+    joblib.dump(matrix, "data/processed/mutation_matrix.joblib")    
 
-    # run NMF
+    # -----------------------------------------------------------
+    # run NMF for some value of k, num_factorizations times
+
     print("Running NMF decomposition...")
     nmf_model = NMFDecomposer(**NMF_PARAMS)
-    W, H = nmf_model.fit(matrix['X'])
+    W_all, H_all = nmf_model.run(X)
 
     # save NMF results
-    joblib.dump(W, "data/processed/W.pkl")
-    joblib.dump(H, "data/processed/H.pkl")
+    joblib.dump({'W_all': W_all, 'H_all': H_all}, 'data/processed/nmf_replicates.joblib')
+
+    # -----------------------------------------------------------
+    # cluster NMF results to build consensus S and A
+
+    print("Partition clustering NMF results...")
+    # TODO: alex's function/class
+    S, A = alex_cluster.consensus()
+
+    # -----------------------------------------------------------
+    # annotate metadata and see if we can find associations with signatures
 
     # load metadata
     print("Loading and merging metadata...")
     metadata = load_metadata(METADATA_PATH)
-    W_annotated = merge_with_components(W, sample_ids, metadata)
+    S_annotated = merge_with_components(S, sample_ids, metadata)
 
     # save cleaned metadata and annotated W
     metadata.to_csv("data/processed/TCGA.BRCA.metadata.qc1.csv", index=False)
-    joblib.dump(W_annotated, "data/processed/W_annotated.pkl")
+    joblib.dump(S_annotated, "data/processed/S_annotated.joblib")
 
     # statistical association tests
     print("Testing associations with metadata...")
-    results = test_association(W_annotated, test_cols=ASSOCIATION_COLUMNS)
+    results = test_association(S_annotated, test_cols=ASSOCIATION_COLUMNS)
 
     # save results
     results.to_csv("reports/enrichment_results.csv", index=False)
     
+    # -----------------------------------------------------------
     # compare with sigprofiler results
+
     print("Loading and merging sigprofiler results...")
     sigprofiler = load_sigprofiler_results(SIGPROFILER_PATH)
     cos_sim = cosine_similarity(W, sigprofiler)
