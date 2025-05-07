@@ -98,10 +98,10 @@ def normalize_matrix(X: np.ndarray, method: str = 'GMM', max_iter: int = 100, ra
         for j in range(X.shape[1]):
             if col_sums[j] > cutoff_value:
                 normalized_matrix[:, j] *= cutoff_value / col_sums[j]
-
         return normalized_matrix
 
     elif method == '100X':
+        X = X.astype(np.float64)
         col_sums = np.sum(X, axis=0)
         num_channels = X.shape[0]
         threshold = 100 * num_channels
@@ -111,6 +111,7 @@ def normalize_matrix(X: np.ndarray, method: str = 'GMM', max_iter: int = 100, ra
                 normalized_matrix[:, j] *= threshold / col_sums[j]
         return normalized_matrix
     elif method == 'log2':
+        X = X.astype(np.float64)
         col_sums = np.sum(X, axis=0)
         log_col_sums = np.log2(col_sums)
         normalized_matrix = (X * log_col_sums) / col_sums
