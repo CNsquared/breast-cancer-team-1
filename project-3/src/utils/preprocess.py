@@ -6,14 +6,11 @@ class MutPreprocessor:
     """This class preprocesses the MAF file and generates a mutation matrix."""
     def __init__(
             self, maf_path: str, 
-            keep_variant_classes: list[str] = ['Missense_Mutation', 'Nonsense_Mutation', 'Silent'], 
-            normalization_method='row-wise'
+            keep_variant_classes: list[str] = ['Missense_Mutation', 'Nonsense_Mutation', 'Silent']
         ):
         
         self.maf_path = maf_path
         self.keep_variant_classes = keep_variant_classes
-        self.normlization_method = normalization_method
-
         self.df_mut = None
         self.sample_ids = None
         self.feature_names = None
@@ -35,7 +32,6 @@ class MutPreprocessor:
         self.sample_ids = self.df_mut['patient_id'].unique()
         self.feature_names = self.df_mut['Hugo_Symbol'].unique()
         self.X = build_mutation_matrix(self.df_mut)
-        self.X = normalize_matrix(self.X, method=self.normlization_method)
 
     def _preprocess(self):
         self._load_maf()
