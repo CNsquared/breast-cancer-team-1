@@ -32,10 +32,10 @@ awk '
   }
 ' TCGA.BRCA.mutations_PASS.vcf # 789 unique samples
 
-# Run SigProfilerMatrixGenerator
+# Run SigProfilerMatrixGenerator with no downsampling
 rm TCGA.BRCA.mutations_PASS.txt TCGA.BRCA.mutations_PASS.vcf
 
 conda activate SigProfilerAssignment
 
-SigProfilerMatrixGenerator matrix_generator "BRCA" "GRCh37" "/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-3/data/processed" --exome --plot
+SigProfilerMatrixGenerator matrix_generator "BRCA" "GRCh37" "/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-3/data/processed" --plot
 ```
