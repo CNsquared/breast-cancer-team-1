@@ -50,7 +50,7 @@ def main():
 
     print("Partition clustering NMF results...")
     # TODO: alex's function/class
-    S, A = alex_cluster.consensus()
+    S, A = alex_cluster.consensus(S_all, A_all)
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures
