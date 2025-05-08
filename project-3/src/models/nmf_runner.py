@@ -58,14 +58,36 @@ class NMFDecomposer:
         self.normalization_method = normalization_method
         self.initialization_method = initialization_method
 
-    def fit(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def initialize_nmf_matrix(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Initialize the NMF matrices S and A.
+        
+        Uses methods:
+        - random: random initialization
+        - nndsvd: Non-negative Double Singular Value Decomposition (NNDSVD)
+        """
+        if self.initialization_method == 'nndsvd':
+            # Placeholder for NNDSVD initialization
+            S, A = self._nndsvd(X)
+        else:
+            # Random initialization
+            S, A = self._random_initialization(X)
+        return (S, A)
+
+    def _fit(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Run NMF and return S (samples x signatures) and A (signatures x features)."""
         # TODO: placeholder for actual NMF implementation
-        W = np.random.rand(X.shape[0], self.n_components)
-        H = np.random.rand(self.n_components, X.shape[1])
-        return (W, H)
+        # initialize matrix
+        if self.initialization_method == 'nndsvd':
+            # Placeholder for NNDSVD initialization
+            W, H = self._nndsvd(X)
+        else:
+            # Random initialization
+            W, H = self._random_initialization(X)
+        S = np.random.rand(X.shape[0], self.n_components)
+        A = np.random.rand(self.n_components, X.shape[1])
+        return (S, A)
         
-    def resample(self, X: np.ndarray) -> np.ndarray:
+    def _resample(self, X: np.ndarray) -> np.ndarray:
         """Resample the data based on the specified method
         
         multinomial resample method: https://www.cell.com/cell-reports/fulltext/S2211-1247(12)00433-0#sec-4
@@ -75,11 +97,11 @@ class NMFDecomposer:
             # Poisson resampling, each entry in X is resampled from a Poisson distribution of the same mean
             return np.random.poisson(X)
         elif self.resample_method == 'bootstrap':
-            return self.multinomial_bootstrap(X)
+            return self._multinomial_bootstrap(X)
         else:
             raise ValueError(f"Unknown resample method: {self.resample_method}, please use 'poisson' or 'bootstrap'")
 
-    def multinomial_bootstrap(self, X: np.ndarray) -> np.ndarray:
+    def _multinomial_bootstrap(self, X: np.ndarray) -> np.ndarray:
         """
         Apply per-column multinomial bootstrap resampling to matrix M.
 
@@ -122,9 +144,9 @@ class NMFDecomposer:
         A_all = []
         
         for _ in range(self.num_factorizations):
-            X_resampled = self.resample(X)
+            X_resampled = self._resample(X)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
-            S, A = self.fit(X_normalized)
+            S, A = self._fit(X_normalized)
             S_all.append(S)
             A_all.append(A)
         
