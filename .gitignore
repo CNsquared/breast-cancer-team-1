@@ -5,3 +5,4 @@ __pycache__/
 *.xls
 /output/
 *.fa
+*.pkl
