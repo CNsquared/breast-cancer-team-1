@@ -1,6 +1,9 @@
 import numpy as np
 from ..utils.mutation_matrix import normalize_matrix
 
+from scipy.stats import uniform
+from sklearn.decomposition import NMF
+
 class NMFDecomposer:
     """Non-negative Matrix Factorization (NMF) Decomposer.
     
@@ -29,26 +32,18 @@ class NMFDecomposer:
     - All W_i (shape: 100 × n_channels × k)
     - All H_i (shape: 100 × k × n_samples)
 
-    Initialization methods:
-    - random (default): random initialization
-    - nndsvd: Non-negative Double Singular Value Decomposition (NNDSVD)
+    Initialization methods: {‘random’, ‘nndsvd’, ‘nndsvda’, ‘nndsvdar’}
 
-    Resampling methods:
-    - poisson: Poisson resampling (default)
-    - bootstrap: multinomial Bootstrap resampling
+    Resampling methods: {'poisson', 'bootstrap'}
 
-    Normalization methods:
-    - GMM: Gaussian mixture model (default)
-    - 100X
-    - log2
-    - None: no normalization.
+    Normalization methods: {'GMM', '100X', 'log2', None}
 
-    Objective functions:
-    - fro: Frobenius
-    - kl: Kullback-Leibler
-    - is: Itakura-Saito
+    Objective functions: ‘frobenius’, ‘kullback-leibler’, ‘itakura-saito’
+        Beta divergence to be minimized, measuring the distance between X and the dot product WH. 
+        Note that values different from ‘frobenius’ (or 2) and ‘kullback-leibler’ (or 1) lead to significantly slower fits. 
+        Note that for beta_loss <= 0 (or ‘itakura-saito’), the input matrix X cannot contain zeros. Used only in ‘mu’ solver.
     """
-    def __init__(self, n_components: int, resample_method: str = 'poisson', objective_function: str = 'fro', initialization_method: str = 'random', normalization_method: str = 'GMM', num_factorizations = 100, random_state: int = 42):
+    def __init__(self, n_components: int, resample_method: str = 'poisson', objective_function: str = 'frobenius', initialization_method: str = 'random', normalization_method: str = 'GMM', max_iter: int = 1000000, num_factorizations: int = 100, random_state: int = 42, tolerance: float = 1e-15):
         """Initialize NMF model parameters."""
         self.n_components = n_components
         self.random_state = random_state
@@ -57,12 +52,20 @@ class NMFDecomposer:
         self.resample_method = resample_method
         self.normalization_method = normalization_method
         self.initialization_method = initialization_method
+        self.tolerance = tolerance
+        self.max_iter = max_iter
 
-    def initialize_nmf_matrix(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _random_initialization(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        n_features, n_samples = X.shape
+        S = uniform(loc=1e-8, scale=1.0 - 1e-8).rvs(size=(n_features, self.n_components)) # create random matrix size S between 0 and 1 (not inclusive)
+        A = uniform(loc=1e-8, scale=1.0 - 1e-8).rvs(size=(self.n_components, n_samples))
+        return S, A
+
+    def _initialize_nmf_matrix(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Initialize the NMF matrices S and A.
         
         Uses methods:
-        - random: random initialization
+        - random: random initialization (between 0 and 1, not inclusive)
         - nndsvd: Non-negative Double Singular Value Decomposition (NNDSVD)
         """
         if self.initialization_method == 'nndsvd':
@@ -74,18 +77,28 @@ class NMFDecomposer:
         return (S, A)
 
     def _fit(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Run NMF and return S (samples x signatures) and A (signatures x features)."""
-        # TODO: placeholder for actual NMF implementation
-        # initialize matrix
-        if self.initialization_method == 'nndsvd':
-            # Placeholder for NNDSVD initialization
-            W, H = self._nndsvd(X)
-        else:
-            # Random initialization
-            W, H = self._random_initialization(X)
-        S = np.random.rand(X.shape[0], self.n_components)
-        A = np.random.rand(self.n_components, X.shape[1])
-        return (S, A)
+        """Run NMF and return S (samples x signatures) and A (signatures x features).
+        
+        Objective functions:
+            - fro: Frobenius
+            - kl: Kullback-Leibler
+            - is: Itakura-Saito
+        """
+        model = NMF(
+            n_components=self.n_components,
+            init=self.initialization_method,
+            solver='mu', beta_loss=self.objective_function,
+            random_state=self.random_state,
+            tol=self.tolerance,
+            max_iter=self.max_iter
+        )
+        S = model.fit_transform(X)
+        A = model.components_
+        err = model.reconstruction_err_
+        if err > self.tolerance:
+            print(f"Warning: NMF did not converge. Error: {err}")
+
+        return (S, A, err)
         
     def _resample(self, X: np.ndarray) -> np.ndarray:
         """Resample the data based on the specified method
@@ -142,13 +155,15 @@ class NMFDecomposer:
         """
         S_all = []
         A_all = []
+        err_all = []
         
         for _ in range(self.num_factorizations):
             X_resampled = self._resample(X)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
-            S, A = self._fit(X_normalized)
+            S, A, err = self._fit(X_normalized)
             S_all.append(S)
             A_all.append(A)
+            err_all.append(err)
         
-        return np.array(S_all), np.array(A_all)
+        return np.array(S_all), np.array(A_all), np.array(err_all)
     
