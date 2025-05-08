@@ -1,5 +1,7 @@
 import numpy as np
 from ..utils.mutation_matrix import normalize_matrix
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 
 from scipy.stats import uniform
 from sklearn.decomposition import NMF
@@ -76,7 +78,7 @@ class NMFDecomposer:
             S, A = self._random_initialization(X)
         return (S, A)
 
-    def _fit(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _fit(self, X: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray]:
         """Run NMF and return S (samples x signatures) and A (signatures x features).
         
         Objective functions:
@@ -88,7 +90,7 @@ class NMFDecomposer:
             n_components=self.n_components,
             init=self.initialization_method,
             solver='mu', beta_loss=self.objective_function,
-            random_state=self.random_state,
+            random_state=seed,
             tol=self.tolerance,
             max_iter=self.max_iter
         )
@@ -102,21 +104,21 @@ class NMFDecomposer:
 
         return (S, A, err, n_iter)
         
-    def _resample(self, X: np.ndarray) -> np.ndarray:
+    def _resample(self, X: np.ndarray, seed: int) -> np.ndarray:
         """Resample the data based on the specified method
         
         multinomial resample method: https://www.cell.com/cell-reports/fulltext/S2211-1247(12)00433-0#sec-4
         """
-        np.random.seed(self.random_state)
+        np.random.seed(seed)
         if self.resample_method == 'poisson':
             # Poisson resampling, each entry in X is resampled from a Poisson distribution of the same mean
             return np.random.poisson(X)
         elif self.resample_method == 'bootstrap':
-            return self._multinomial_bootstrap(X)
+            return self._multinomial_bootstrap(X, seed)
         else:
             raise ValueError(f"Unknown resample method: {self.resample_method}, please use 'poisson' or 'bootstrap'")
 
-    def _multinomial_bootstrap(self, X: np.ndarray) -> np.ndarray:
+    def _multinomial_bootstrap(self, X: np.ndarray, seed: int) -> np.ndarray:
         """
         Apply per-column multinomial bootstrap resampling to matrix M.
 
@@ -128,7 +130,7 @@ class NMFDecomposer:
         Returns:
         - X_boot: np.ndarray of shape (n_types, n_samples), resampled counts
         """
-        rng = np.random.default_rng(self.random_state)
+        rng = np.random.default_rng(seed)
         n_types, n_samples = X.shape
         X_boot = np.zeros_like(X)
 
@@ -141,6 +143,13 @@ class NMFDecomposer:
             X_boot[:, j] = rng.multinomial(total, probs)
         
         return X_boot
+    
+    def _single_factorization(self, X: np.ndarray):
+        """Wrapper to run one NMF replicate with a given seed."""
+        X_resampled = self._resample(X)
+        X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
+        S, A, err, n_iter = self._fit(X_normalized)
+        return S, A, err, n_iter
 
 
     def run(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -160,10 +169,11 @@ class NMFDecomposer:
         err_all = []
         n_iter_all = []
         
-        for _ in range(self.num_factorizations):
-            X_resampled = self._resample(X)
+        for i in range(self.num_factorizations):
+            seed = self.random_state + i
+            X_resampled = self._resample(X, seed)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
-            S, A, err, n_iter = self._fit(X_normalized)
+            S, A, err, n_iter = self._fit(X_normalized, seed)
             S_all.append(S)
             A_all.append(A)
             err_all.append(err)
