@@ -41,10 +41,10 @@ def main():
 
     print("Running NMF decomposition...")
     nmf_model = NMFDecomposer(**NMF_PARAMS)
-    S_all, A_all = nmf_model.run(X)
+    S_all, A_all, err_all = nmf_model.run(X)
 
     # save NMF results
-    joblib.dump({'S_all': S_all, 'A_all': A_all}, 'data/processed/nmf_replicates.joblib')
+    joblib.dump({'S_all': S_all, 'A_all': A_all, 'err_all': err_all}, 'data/processed/nmf_replicates.joblib')
 
     # -----------------------------------------------------------
     # cluster NMF results to build consensus S and A
