@@ -45,7 +45,7 @@ def main():
     # matrix = pre.get_mutation_matrix()
     # X, sample_ids, feature_names = matrix['X'], matrix['sample_ids'], matrix['feature_names']
     
-    df = pd.read_csv("/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-3/data/processed/BRCA.SBS96.all", sep="\t", )
+    df = pd.read_csv("../data/processed/BRCA.SBS96.all", sep="\t")
 
     # 2. Drop the "MutationType" column
     feature_names = df["MutationType"].tolist()
