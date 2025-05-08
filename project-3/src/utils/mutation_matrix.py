@@ -37,11 +37,12 @@ def normalize_matrix(X: np.ndarray, method: str = 'GMM', max_iter: int = 100, ra
     TODO: In all cases, fractional values after normalization are used as input for the factorization, and columns
         with a sum of zero, reflecting genomes without any somatic mutations, are ignored to avoid division by zero
     """
+    X = X.copy()
+    X = X.astype(float)
     if method is None or method == 'None':
         return X
     elif method == 'GMM':
         # first step: fit GMM to the data to get normalization cutoff value
-        X = X.astype(float)
         col_sums = np.sum(X, axis=0)
         n_channels = X.shape[0]
 
@@ -101,7 +102,6 @@ def normalize_matrix(X: np.ndarray, method: str = 'GMM', max_iter: int = 100, ra
         return normalized_matrix
 
     elif method == '100X':
-        X = X.astype(np.float64)
         col_sums = np.sum(X, axis=0)
         num_channels = X.shape[0]
         threshold = 100 * num_channels
@@ -111,7 +111,6 @@ def normalize_matrix(X: np.ndarray, method: str = 'GMM', max_iter: int = 100, ra
                 normalized_matrix[:, j] *= threshold / col_sums[j]
         return normalized_matrix
     elif method == 'log2':
-        X = X.astype(np.float64)
         col_sums = np.sum(X, axis=0)
         log_col_sums = np.log2(col_sums)
         normalized_matrix = (X * log_col_sums) / col_sums
