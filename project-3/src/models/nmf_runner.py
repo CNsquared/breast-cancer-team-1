@@ -107,7 +107,17 @@ class NMFDecomposer:
 
 
     def run(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Run NMF decomposition and return all S and A matrices."""
+        """
+        Run NMF decomposition on the input matrix X with defined NMF model parameters
+        
+        Parameters:
+        - X: np.ndarray of shape (n_types, n_samples), original mutation matrix
+
+        Returns:
+        - Tuple of two numpy arrays: (S_all, A_all)
+            - S_all: np.ndarray of shape (num_factorizations, n_types, n_components), all S matrices
+            - A_all: np.ndarray of shape (num_factorizations, n_components, n_samples), all A matrices
+        """
         S_all = []
         A_all = []
         
