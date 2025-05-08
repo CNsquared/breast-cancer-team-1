@@ -6,6 +6,7 @@ from src.models.nmf_runner import NMFDecomposer
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 from src.models.clustering import consensus_signatures
+import os
 
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
@@ -62,22 +63,27 @@ def main():
     # save processed data
     df.to_csv("data/processed/TCGA.BRCA.mutations.qc1.csv", index=False)  
 
+
     # -----------------------------------------------------------
     # run NMF for some value of k, num_factorizations times
 
     print("Running NMF decomposition...")
-    nmf_model = NMFDecomposer(**NMF_PARAMS)
-    S_all, A_all, err_all = nmf_model.run(X)
-
-    # save NMF results
-    joblib.dump({'S_all': S_all, 'A_all': A_all, 'err_all': err_all}, 'data/processed/nmf_replicates.joblib')
+    nmf_file = "data/processed/nmf_replicates.joblib"
+    if os.path.exists(nmf_file):
+        print("Loading existing NMF results...")
+        data = joblib.load(nmf_file)
+        S_all, A_all, err_all = data["S_all"], data["A_all"], data["err_all"]
+    else:
+        print("Running NMF decomposition...")
+        nmf_model = NMFDecomposer(**NMF_PARAMS)
+        S_all, A_all, err_all, _ = nmf_model.run(X)
+        joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
 
     # -----------------------------------------------------------
     # cluster NMF results to build consensus S and A
 
     print("Partition clustering NMF results...")
-    # TODO: alex's function/class
-    centriods = consensus_signatures(S_all, k = 5, stability_threshold=0.8, run_threshold=0.8)
+    centriods = consensus_signatures(X, S_all, k = 25, stability_threshold=0.8, min_sil=0.2)
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures

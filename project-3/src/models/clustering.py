@@ -13,7 +13,7 @@ def align_run_to_ref(S_ref, S_run):
 
 def consensus_signatures(X, S_runs, k,
                          stability_threshold=0.8,
-                         min_sil=0.8):
+                         min_sil=0.2):
     """
     X:       (n_samples x n_features) original data matrix
     S_runs:  list of (n_features x k) S-matrices from repeated NMF
@@ -21,6 +21,9 @@ def consensus_signatures(X, S_runs, k,
     """
     # 1) align all runs to the first
     S_ref = S_runs[0]
+    # ensure X is shaped (n_samples, n_features) so features match S_ref rows
+    if X.shape[1] != S_ref.shape[0]:
+        X = X.T
     S_aligned = [ align_run_to_ref(S_ref, S) for S in S_runs ]
 
     # 2) stack all columns into shape (n_runs*k, n_features)
