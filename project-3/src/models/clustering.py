@@ -21,6 +21,9 @@ def consensus_signatures(X, S_runs, k,
     """
     # 1) align all runs to the first
     S_ref = S_runs[0]
+    # ensure X is shaped (n_samples, n_features) so features match S_ref rows
+    if X.shape[1] != S_ref.shape[0]:
+        X = X.T
     S_aligned = [ align_run_to_ref(S_ref, S) for S in S_runs ]
 
     # 2) stack all columns into shape (n_runs*k, n_features)
