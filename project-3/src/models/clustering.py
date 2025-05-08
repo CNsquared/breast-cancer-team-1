@@ -13,7 +13,7 @@ def align_run_to_ref(S_ref, S_run):
 
 def consensus_signatures(X, S_runs, k,
                          stability_threshold=0.8,
-                         min_sil=0.8):
+                         min_sil=0.2):
     """
     X:       (n_samples x n_features) original data matrix
     S_runs:  list of (n_features x k) S-matrices from repeated NMF

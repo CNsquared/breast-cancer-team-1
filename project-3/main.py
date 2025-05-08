@@ -61,13 +61,15 @@ def main():
 
     # save processed data
     df.to_csv("data/processed/TCGA.BRCA.mutations.qc1.csv", index=False)  
+    
+
 
     # -----------------------------------------------------------
     # run NMF for some value of k, num_factorizations times
 
     print("Running NMF decomposition...")
     nmf_model = NMFDecomposer(**NMF_PARAMS)
-    S_all, A_all, err_all = nmf_model.run(X)
+    S_all, A_all, err_all, _ = nmf_model.run(X)
 
     # save NMF results
     joblib.dump({'S_all': S_all, 'A_all': A_all, 'err_all': err_all}, 'data/processed/nmf_replicates.joblib')
@@ -77,7 +79,7 @@ def main():
 
     print("Partition clustering NMF results...")
     # TODO: alex's function/class
-    centriods = consensus_signatures(S_all, k = 5, stability_threshold=0.8, run_threshold=0.8)
+    centriods = consensus_signatures(X, S_all, k = 25, stability_threshold=0.8, min_sil=0.2)
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures
