@@ -5,6 +5,7 @@ from src.utils.metadata_utils import load_metadata, merge_with_components
 from src.models.nmf_runner import NMFDecomposer
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
+from src.clustering import cluster
 
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
@@ -76,7 +77,7 @@ def main():
 
     print("Partition clustering NMF results...")
     # TODO: alex's function/class
-    S, A = alex_cluster.consensus(S_all, A_all)
+    centriods = cluster(S_all, k = 5, stability_threshold=0.8, run_threshold=0.8)
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures
@@ -84,7 +85,7 @@ def main():
     # load metadata
     print("Loading and merging metadata...")
     metadata = load_metadata(METADATA_PATH)
-    S_annotated = merge_with_components(S, sample_ids, metadata)
+    S_annotated = merge_with_components(centriods, sample_ids, metadata)
 
     # save cleaned metadata and annotated W
     metadata.to_csv("data/processed/TCGA.BRCA.metadata.qc1.csv", index=False)
