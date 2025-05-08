@@ -26,15 +26,15 @@ ASSOCIATION_COLUMNS=['sex','age','cancer_subtype']
 # }
 
 NMF_PARAMS = {
-    'n_components': 25,
-    'resample_method': 'poisson',
-    'objective_function': 'frobenius',
-    'initialization_method': 'random',
-    'normalization_method': 'GMM',
-    'max_iter': 10000,
-    'num_factorizations': 1,
+    'n_components': 25,  # number of signatures to extract
+    'resample_method': 'poisson', # resampling method used on normalized X'
+    'objective_function': 'frobenius', # objective function to minimize for nmf
+    'initialization_method': 'random', # initialization method for S and A
+    'normalization_method': 'GMM', # normalization applied to X before resampling
+    'max_iter': 10000, # maximum number of mulitiplicative updates in nmf algo
+    'num_factorizations': 100, # number of times to run nmf (with independent resampling/normalization)
     'random_state': 42,
-    'tolerance': 1e-6
+    'tolerance': 1e-6 # tolerance for convergence of nmf
 }
 
 def main():
