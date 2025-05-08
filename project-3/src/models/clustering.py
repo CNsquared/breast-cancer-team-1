@@ -52,6 +52,8 @@ def consensus_signatures(X, S_runs, k,
             c = members.mean(axis=0)
             c = c / (c.sum() + 1e-12)
             centroids.append(c)
+            
+    print(len(centroids), "stable centroids found")
 
     # 5) global silhouette score
     sil_score = silhouette_score(all_sigs_norm, labels, metric='cosine')
