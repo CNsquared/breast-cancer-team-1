@@ -95,10 +95,12 @@ class NMFDecomposer:
         S = model.fit_transform(X)
         A = model.components_
         err = model.reconstruction_err_
+        n_iter = model.n_iter_
+
         if err > self.tolerance:
             print(f"Warning: NMF did not converge. Error: {err}")
 
-        return (S, A, err)
+        return (S, A, err, n_iter)
         
     def _resample(self, X: np.ndarray) -> np.ndarray:
         """Resample the data based on the specified method
@@ -156,14 +158,16 @@ class NMFDecomposer:
         S_all = []
         A_all = []
         err_all = []
+        n_iter_all = []
         
         for _ in range(self.num_factorizations):
             X_resampled = self._resample(X)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
-            S, A, err = self._fit(X_normalized)
+            S, A, err, n_iter = self._fit(X_normalized)
             S_all.append(S)
             A_all.append(A)
             err_all.append(err)
+            n_iter_all.append(n_iter)
         
-        return np.array(S_all), np.array(A_all), np.array(err_all)
+        return np.array(S_all), np.array(A_all), np.array(err_all), np.array(n_iter_all)
     

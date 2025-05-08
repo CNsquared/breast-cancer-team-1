@@ -13,16 +13,28 @@ SIGPROFILER_PATH = "data/raw/sigprofiler_results.txt"
 ASSOCIATION_COLUMNS=['sex','age','cancer_subtype']
 
 # NMF parameters - Identify best parameters for our dataset
+# PAPER_NMF_PARAMS = {
+#     'n_components': 5,
+#     'resample_method': 'poisson',
+#     'objective_function': 'frobenius',
+#     'initialization_method': 'random',
+#     'normalization_method': 'GMM',
+#     'max_iter': 1000000,
+#     'num_factorizations': 100,
+#     'random_state': 42,
+#     'tolerance': 1e-15
+# }
+
 NMF_PARAMS = {
-    'n_components': 5,
+    'n_components': 25,
     'resample_method': 'poisson',
     'objective_function': 'frobenius',
     'initialization_method': 'random',
     'normalization_method': 'GMM',
-    'max_iter': 1000000,
-    'num_factorizations': 100,
+    'max_iter': 10000,
+    'num_factorizations': 1,
     'random_state': 42,
-    'tolerance': 1e-15
+    'tolerance': 1e-6
 }
 
 def main():
