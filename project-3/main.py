@@ -5,7 +5,7 @@ from src.utils.metadata_utils import load_metadata, merge_with_components
 from src.models.nmf_runner import NMFDecomposer
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
-from src.clustering import cluster
+from src.models.clustering import cluster
 
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
