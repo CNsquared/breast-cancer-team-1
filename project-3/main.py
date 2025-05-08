@@ -15,12 +15,14 @@ ASSOCIATION_COLUMNS=['sex','age','cancer_subtype']
 # NMF parameters - Identify best parameters for our dataset
 NMF_PARAMS = {
     'n_components': 5,
-    'objective_function': 'fro',
+    'resample_method': 'poisson',
+    'objective_function': 'frobenius',
+    'initialization_method': 'random',
+    'normalization_method': 'GMM',
+    'max_iter': 1000000,
     'num_factorizations': 100,
     'random_state': 42,
-    'resample_method': 'poisson',
-    'normalization_method': 'GMM',
-    'initialization_method': 'nndsvd',
+    'tolerance': 1e-15
 }
 
 def main():
