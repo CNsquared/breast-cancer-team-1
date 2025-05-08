@@ -97,8 +97,8 @@ class NMFDecomposer:
         err = model.reconstruction_err_
         n_iter = model.n_iter_
 
-        if err > self.tolerance:
-            print(f"Warning: NMF did not converge. Error: {err}")
+        # if err > self.tolerance:
+        #     print(f"Warning: NMF did not converge. Error: {err}")
 
         return (S, A, err, n_iter)
         
