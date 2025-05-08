@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from mutation_matrix import build_mutation_matrix, normalize_matrix
+from src.utils.mutation_matrix import build_mutation_matrix, normalize_matrix
 
 class MutPreprocessor:
     """This class preprocesses the MAF file and generates a mutation matrix."""
