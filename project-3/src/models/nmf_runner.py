@@ -45,7 +45,7 @@ class NMFDecomposer:
         Note that values different from ‘frobenius’ (or 2) and ‘kullback-leibler’ (or 1) lead to significantly slower fits. 
         Note that for beta_loss <= 0 (or ‘itakura-saito’), the input matrix X cannot contain zeros. Used only in ‘mu’ solver.
     """
-    def __init__(self, n_components: int, resample_method: str = 'poisson', objective_function: str = 'frobenius', initialization_method: str = 'random', normalization_method: str = 'GMM', max_iter: int = 1000000, num_factorizations: int = 100, random_state: int = 42, tolerance: float = 1e-15):
+    def __init__(self, n_components: int, resample_method: str = 'poisson', objective_function: str = 'frobenius', initialization_method: str = 'random', normalization_method: str = 'GMM', max_iter: int = 1000000, num_factorizations: int = 100, random_state: int = 42, tolerance: float = 1e-15, verbose: bool = False):
         """Initialize NMF model parameters."""
         self.n_components = n_components
         self.random_state = random_state
@@ -56,6 +56,7 @@ class NMFDecomposer:
         self.initialization_method = initialization_method
         self.tolerance = tolerance
         self.max_iter = max_iter
+        self.verbose = verbose
 
     def _random_initialization(self, X: np.ndarray, seed: int = None) -> tuple[np.ndarray, np.ndarray]:
         n_features, n_samples = X.shape
@@ -171,6 +172,8 @@ class NMFDecomposer:
         n_iter_all = []
         
         for i in range(self.num_factorizations):
+            if self.verbose:
+                print(f"Running NMF factorization k={self.n_components}, iteration={i + 1}/{self.num_factorizations}")
             seed = self.random_state + i
             X_resampled = self._resample(X, seed)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
