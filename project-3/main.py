@@ -83,7 +83,9 @@ def main():
     # cluster NMF results to build consensus S and A
 
     print("Partition clustering NMF results...")
-    centriods = consensus_signatures(X, S_all, k = 25, stability_threshold=0.8, min_sil=0.2)
+    centriods_s = consensus_signatures(X, S_all, k = 25, stability_threshold=0.8, min_sil=0.2)
+    centriods_a = consensus_signatures(X, A_all.T, k = 25, stability_threshold=0.8, min_sil=0.2)
+
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures
@@ -91,7 +93,7 @@ def main():
     # load metadata
     print("Loading and merging metadata...")
     metadata = load_metadata(METADATA_PATH)
-    S_annotated = merge_with_components(centriods, sample_ids, metadata)
+    S_annotated = merge_with_components(centriods_s, sample_ids, metadata)
 
     # save cleaned metadata and annotated W
     metadata.to_csv("data/processed/TCGA.BRCA.metadata.qc1.csv", index=False)
