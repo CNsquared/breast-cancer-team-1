@@ -2,8 +2,8 @@ import numpy as np
 from ..utils.mutation_matrix import normalize_matrix
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
+from numpy.random import default_rng
 
-from scipy.stats import uniform
 from sklearn.decomposition import NMF
 
 class NMFDecomposer:
@@ -57,26 +57,12 @@ class NMFDecomposer:
         self.tolerance = tolerance
         self.max_iter = max_iter
 
-    def _random_initialization(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def _random_initialization(self, X: np.ndarray, seed: int = None) -> tuple[np.ndarray, np.ndarray]:
         n_features, n_samples = X.shape
-        S = uniform(loc=1e-8, scale=1.0 - 1e-8).rvs(size=(n_features, self.n_components)) # create random matrix size S between 0 and 1 (not inclusive)
-        A = uniform(loc=1e-8, scale=1.0 - 1e-8).rvs(size=(self.n_components, n_samples))
+        rng = default_rng(seed)
+        S = rng.uniform(low=1e-8, high=1.0 - 1e-8, size=(n_features, self.n_components))
+        A = rng.uniform(low=1e-8, high=1.0 - 1e-8, size=(self.n_components, n_samples))
         return S, A
-
-    def _initialize_nmf_matrix(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Initialize the NMF matrices S and A.
-        
-        Uses methods:
-        - random: random initialization (between 0 and 1, not inclusive)
-        - nndsvd: Non-negative Double Singular Value Decomposition (NNDSVD)
-        """
-        if self.initialization_method == 'nndsvd':
-            # Placeholder for NNDSVD initialization
-            S, A = self._nndsvd(X)
-        else:
-            # Random initialization
-            S, A = self._random_initialization(X)
-        return (S, A)
 
     def _fit(self, X: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray]:
         """Run NMF and return S (samples x signatures) and A (signatures x features).
@@ -86,15 +72,30 @@ class NMFDecomposer:
             - kl: Kullback-Leibler
             - is: Itakura-Saito
         """
-        model = NMF(
-            n_components=self.n_components,
-            init=self.initialization_method,
-            solver='mu', beta_loss=self.objective_function,
-            random_state=seed,
-            tol=self.tolerance,
-            max_iter=self.max_iter
-        )
-        S = model.fit_transform(X)
+        # use custom random init
+        if self.initialization_method == 'random':
+            S, A = self._random_initialization(X, seed)
+            model = NMF(
+                n_components=self.n_components,
+                init='custom',
+                solver='mu',
+                beta_loss=self.objective_function,
+                random_state=seed,
+                tol=self.tolerance,
+                max_iter=self.max_iter
+            )
+            S = model.fit_transform(X, W=S, H=A)
+        else:    
+            model = NMF(
+                n_components=self.n_components,
+                init=self.initialization_method,
+                solver='mu',
+                beta_loss=self.objective_function,
+                random_state=seed,
+                tol=self.tolerance,
+                max_iter=self.max_iter
+            )
+            S = model.fit_transform(X)
         A = model.components_
         err = model.reconstruction_err_
         n_iter = model.n_iter_
