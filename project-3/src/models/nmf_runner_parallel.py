@@ -119,7 +119,20 @@ class NMFDecomposer:
             for i in range(self.num_factorizations)
         )
 
-        S_all, A_all, err_all, n_iter_all = zip(*results)
+        filtered_results = [
+            (S, A, err, n_iter)
+            for S, A, err, n_iter in results
+            if not np.isnan(err)
+        ]
+
+        if len(filtered_results) == 0:
+            raise RuntimeError("All NMF factorizations resulted in NaNs.")
+
+        if self.verbose:
+            print(f"Retained {len(filtered_results)} / {self.num_factorizations} successful runs", flush=True)
+
+        S_all, A_all, err_all, n_iter_all = zip(*filtered_results)
+
         return (
             np.array(S_all),
             np.array(A_all),

@@ -182,6 +182,12 @@ class NMFDecomposer:
             X_resampled = self._resample(X, seed)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
             S, A, err, n_iter = self._fit(X_normalized, seed)
+
+            if np.isnan(err):
+                if self.verbose:
+                    print(f"⚠️  Skipping iteration {i + 1} due to NaN reconstruction error", flush=True)
+                continue
+
             S_all.append(S)
             A_all.append(A)
             err_all.append(err)
