@@ -8,6 +8,8 @@ from src.models.signature_comparator import load_sigprofiler_results, cosine_sim
 from src.models.clustering import consensus_signatures
 import os
 
+RERUN_NMF=False
+
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
 METADATA_PATH = "data/raw/TCGA.BRCA.metadata.txt"
@@ -68,7 +70,7 @@ def main():
     # run NMF for some value of k, num_factorizations times
 
     nmf_file = "data/processed/nmf_replicates.joblib"
-    if os.path.exists(nmf_file):
+    if os.path.exists(nmf_file) and not RERUN_NMF:
         print("Loading existing NMF results...")
         data = joblib.load(nmf_file)
         S_all, A_all, err_all = data["S_all"], data["A_all"], data["err_all"]
