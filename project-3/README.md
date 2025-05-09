@@ -39,3 +39,21 @@ conda activate SigProfilerAssignment
 
 SigProfilerMatrixGenerator matrix_generator "BRCA" "GRCh37" "/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-3/data/processed" --plot
 ```
+
+# To run SigProfilerExtractor
+
+1. **Create and activate a virtual environment** using the following commands:
+
+    ```bash
+    python -m venv sigprof
+    source sigprof/bin/activate
+    ```
+
+2. **Install SigProfilerExtractor and its dependencies** inside the virtual environment:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+    
+For more information about SigProfilerExtractor : https://github.com/AlexandrovLab/SigProfilerExtractor
+
