@@ -71,7 +71,7 @@ def main():
 
     nmf_file = "data/processed/nmf_replicates.joblib"
     if os.path.exists(nmf_file) and not RERUN_NMF:
-        print("Loading existing NMF results...")
+        print("RERUN_NMF is set to False and nmf files exist. Loading existing NMF results...")
         data = joblib.load(nmf_file)
         S_all, A_all, err_all = data["S_all"], data["A_all"], data["err_all"]
     else:
