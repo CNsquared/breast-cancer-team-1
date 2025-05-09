@@ -170,10 +170,14 @@ class NMFDecomposer:
         A_all = []
         err_all = []
         n_iter_all = []
+        print(f"Running NMF with following parameters:", flush=True)
+        for attr, value in self.__dict__.items():
+            print(f"{attr}: {value}")
+        print("", flush=True)
         
         for i in range(self.num_factorizations):
             if self.verbose:
-                print(f"Running NMF factorization k={self.n_components}, iteration={i + 1}/{self.num_factorizations}")
+                print(f"Running NMF factorization k={self.n_components}, iteration={i + 1}/{self.num_factorizations}", flush=True)
             seed = self.random_state + i
             X_resampled = self._resample(X, seed)
             X_normalized = normalize_matrix(X_resampled, method=self.normalization_method)
