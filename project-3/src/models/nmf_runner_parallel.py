@@ -3,10 +3,21 @@ from sklearn.decomposition import NMF
 from joblib import Parallel, delayed
 from ..utils.mutation_matrix import normalize_matrix  # Adjust as needed
 import multiprocessing
+import multiprocessing.shared_memory as shm
+
+# Store a copy of X in shared memory
+def create_shared_array(X: np.ndarray):
+    shared_X = shm.SharedMemory(create=True, size=X.nbytes)
+    shared_array = np.ndarray(X.shape, dtype=X.dtype, buffer=shared_X.buf)
+    shared_array[:] = X[:]  # Copy data into shared memory
+    return shared_X, shared_array
+
 
 
 def _single_factorization_static(
-    X: np.ndarray,
+    shm_name: str,
+    shape: tuple,
+    dtype: str,
     k: int,
     seed: int,
     resample_method: str,
@@ -20,8 +31,8 @@ def _single_factorization_static(
 ):
     if verbose:
         print(f"Running NMF factorization k={k}, iteration={i + 1}", flush=True)
-
-    np.random.seed(seed)
+    existing_shm = shm.SharedMemory(name=shm_name)
+    X = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
     rng = np.random.default_rng(seed)
 
     # Resample
@@ -102,22 +113,29 @@ class NMFDecomposer:
                 print(f"{attr}: {value}", flush=True)
             print("", flush=True)
 
-        results = Parallel(n_jobs=self.n_jobs, backend='loky')(
-            delayed(_single_factorization_static)(
-                X,
-                self.n_components,
-                self.random_state + i,
-                self.resample_method,
-                self.normalization_method,
-                self.objective_function,
-                self.initialization_method,
-                self.max_iter,
-                self.tolerance,
-                i,
-                self.verbose
+        shm_block, _ = create_shared_array(X)
+        try:
+            results = Parallel(n_jobs=self.n_jobs, backend='loky')(
+                delayed(_single_factorization_static)(
+                    shm_block.name,
+                    X.shape,
+                    X.dtype.name,
+                    self.n_components,
+                    self.random_state + i,
+                    self.resample_method,
+                    self.normalization_method,
+                    self.objective_function,
+                    self.initialization_method,
+                    self.max_iter,
+                    self.tolerance,
+                    i,
+                    self.verbose
+                )
+                for i in range(self.num_factorizations)
             )
-            for i in range(self.num_factorizations)
-        )
+        finally:
+            shm_block.close()
+            shm_block.unlink()
 
         filtered_results = [
             (S, A, err, n_iter)
