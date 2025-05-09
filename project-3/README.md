@@ -41,9 +41,18 @@ SigProfilerMatrixGenerator matrix_generator "BRCA" "GRCh37" "/Users/zichenjiang/
 ```
 
 # To run SigProfilerExtractor
-create a virtual environment activate it using the following lines 
-`python -m venv sigprof \
- source sigprof/bin/activate`  \
-After activating the virtual environment, install SigProfilerExtractor and its dependencies inside the virtual environment using 
-`pip install -r requirements.txt`
+
+1. **Create and activate a virtual environment** using the following commands:
+
+    ```bash
+    python -m venv sigprof
+    source sigprof/bin/activate
+    ```
+
+2. **Install SigProfilerExtractor and its dependencies** inside the virtual environment:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
 
