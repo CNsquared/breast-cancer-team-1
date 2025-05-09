@@ -54,5 +54,6 @@ SigProfilerMatrixGenerator matrix_generator "BRCA" "GRCh37" "/Users/zichenjiang/
     ```bash
     pip install -r requirements.txt
     ```
-
+    
+For more information about SigProfilerExtractor : https://github.com/AlexandrovLab/SigProfilerExtractor
 
