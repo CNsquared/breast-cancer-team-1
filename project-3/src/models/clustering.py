@@ -12,8 +12,8 @@ def align_run_to_ref(S_ref, S_run):
     return S_run[:, col_ind]
 
 def consensus_signatures(X, S_runs, k,
-                         stability_threshold=0.8,
-                         min_sil=0.2):
+                         average_threshold=0.8,
+                         minimum_threshold=0.2, reconstruction=True):
     """
     X:       (n_samples x n_features) original data matrix
     S_runs:  list of (n_features x k) S-matrices from repeated NMF
@@ -32,7 +32,35 @@ def consensus_signatures(X, S_runs, k,
     all_sigs_norm = all_sigs / (all_sigs.sum(axis=1, keepdims=True) + 1e-12)
 
     # 3) k-means clustering
-    kmeans = KMeans(n_clusters=k, random_state=0).fit(all_sigs_norm)
+    # 3) k-means with equal‐size clusters
+    n_points = all_sigs_norm.shape[0]
+    if n_points % k != 0:
+        raise ValueError(f"Cannot partition {n_points} points into {k} equal clusters")
+    size = n_points // k
+
+    # initialize centroids with regular k‐means
+    init_km = KMeans(n_clusters=k, random_state=0).fit(all_sigs_norm)
+    centers = init_km.cluster_centers_
+
+    # compute squared distances to each centroid
+    dist2 = np.sum((all_sigs_norm[:, None, :] - centers[None, :, :])**2, axis=2)
+
+    # greedy assignment: pick the smallest distance edges first
+    labels = -np.ones(n_points, dtype=int)
+    counts = np.zeros(k, dtype=int)
+    rows, cols = np.unravel_index(np.argsort(dist2.ravel()), dist2.shape)
+    for i, j in zip(rows, cols):
+        if labels[i] < 0 and counts[j] < size:
+            labels[i] = j
+            counts[j] += 1
+        if np.all(labels >= 0):
+            break
+
+    # wrap assigned labels in a dummy object to mimic sklearn API
+    class DummyKMeans:
+        pass
+    kmeans = DummyKMeans()
+    kmeans.labels_ = labels
     labels = kmeans.labels_
 
     # 4) compute stable centroids based on silhouette stability
@@ -47,7 +75,8 @@ def consensus_signatures(X, S_runs, k,
         avg_sil = sil_vals.mean()
         min_sil = sil_vals.min()
         # require average stability ≥0.80 and no individual stability <0.20
-        if avg_sil >= stability_threshold and min_sil >= min_sil:
+        print(f"Cluster {cid}: avg_sil={avg_sil:.3f}, min_sil={min_sil:.3f}")
+        if avg_sil >= average_threshold and min_sil >= minimum_threshold:
             members = all_sigs[idx]
             c = members.mean(axis=0)
             c = c / (c.sum() + 1e-12)
@@ -58,21 +87,6 @@ def consensus_signatures(X, S_runs, k,
     # 5) global silhouette score
     sil_score = silhouette_score(all_sigs_norm, labels, metric='cosine')
 
-    # 6) reconstruction error: solve X ≈ W @ S_cons.T via NNLS
-    #    centroids is list of (n_features,), stack into (n_features x c)
-    if len(centroids) == 0:
-        recon_err = np.nan
-    else:
-        S_cons = np.stack(centroids, axis=1)   # shape (n_features x c)
-        n_samples = X.shape[0]
-        W = np.zeros((n_samples, S_cons.shape[1]))
-        for i in range(n_samples):
-            # solve S_cons @ w_i = X[i,:]
-            w_i, _ = nnls(S_cons, X[i, :])
-            W[i, :] = w_i
-        X_hat = W.dot(S_cons.T)
-        numer   = np.linalg.norm(X - X_hat, 'fro')
-        denom   = np.linalg.norm(X,       'fro') + 1e-12
-        recon_err = numer / denom
+   
 
-    return centroids, sil_score, recon_err
+    return centroids, sil_score

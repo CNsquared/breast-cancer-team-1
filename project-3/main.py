@@ -67,7 +67,6 @@ def main():
     # -----------------------------------------------------------
     # run NMF for some value of k, num_factorizations times
 
-    print("Running NMF decomposition...")
     nmf_file = "data/processed/nmf_replicates.joblib"
     if os.path.exists(nmf_file):
         print("Loading existing NMF results...")
@@ -83,8 +82,28 @@ def main():
     # cluster NMF results to build consensus S and A
 
     print("Partition clustering NMF results...")
-    centriods_s = consensus_signatures(X, S_all, k = 25, stability_threshold=0.8, min_sil=0.2)
-    centriods_a = consensus_signatures(X, A_all.T, k = 25, stability_threshold=0.8, min_sil=0.2)
+    centroids_s, sil_score_s = consensus_signatures(X, S_all, k = 25, average_threshold=0.8, minimum_threshold=0.2, reconstruction=False)
+    #centroids_s, sil_score_s, recon_err_s = consensus_signatures(X, S_all, k = 25, average_threshold=-1, minimum_threshold=-1)
+
+    import numpy as np
+    import time
+    centroids_s = np.array(centroids_s)
+    print(f"Centroids shape: {centroids_s.shape}")
+    
+    print("-" * 50)
+    time_start = time.time()
+    centroids_a, sil_score_a = consensus_signatures(X, A_all.T, k = 25, average_threshold=0.22, minimum_threshold=-0.1, reconstruction=False)
+    #centroids_a, sil_score_a, recon_err_a = consensus_signatures(X.T, A_all.T, k = 25, average_threshold=-1, minimum_threshold=-1, reconstruction=False)
+
+    centroids_a = np.array(centroids_a)
+    time_end = time.time()
+
+    print(f"Time taken for consensus signatures: {time_end - time_start} seconds")
+    print(f"Centroids shape: {centroids_a.shape}")
+    
+    print("-" * 50)
+    
+    
 
 
     # -----------------------------------------------------------
@@ -93,7 +112,7 @@ def main():
     # load metadata
     print("Loading and merging metadata...")
     metadata = load_metadata(METADATA_PATH)
-    S_annotated = merge_with_components(centriods_s, sample_ids, metadata)
+    S_annotated = merge_with_components(centroids_s, sample_ids, metadata)
 
     # save cleaned metadata and annotated W
     metadata.to_csv("data/processed/TCGA.BRCA.metadata.qc1.csv", index=False)
