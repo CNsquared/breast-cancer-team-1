@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 from src.utils.preprocess import MutPreprocessor
 from src.utils.metadata_utils import load_metadata, merge_with_components
-from src.models.nmf_runner import NMFDecomposer
+from src.models.nmf_runner_parallel import NMFDecomposer
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 from src.models.clustering import consensus_signatures

@@ -1,12 +1,25 @@
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
 from sklearn.decomposition import NMF
+from joblib import Parallel, delayed
 from ..utils.mutation_matrix import normalize_matrix  # Adjust as needed
+import multiprocessing
 
 
-def _single_factorization_static(args):
-    X, k, seed, resample_method, normalization_method, objective_function, initialization_method, max_iter, tolerance = args
+def _single_factorization_static(
+    X: np.ndarray,
+    k: int,
+    seed: int,
+    resample_method: str,
+    normalization_method: str,
+    objective_function: str,
+    initialization_method: str,
+    max_iter: int,
+    tolerance: float,
+    i: int,
+    verbose: bool
+):
+    if verbose:
+        print(f"Running NMF factorization k={k}, iteration={i + 1}", flush=True)
 
     np.random.seed(seed)
     rng = np.random.default_rng(seed)
@@ -45,50 +58,31 @@ def _single_factorization_static(args):
     err = model.reconstruction_err_
     n_iter = model.n_iter_
 
+    # if verbose:
+    #     if n_iter >= max_iter:
+    #         print(f"⚠️  Iteration {i + 1}: NMF hit max_iter ({max_iter}) without converging (reconstruction error: {err:.4f})", flush=True)
+    #     else:
+    #         print(f"✓  Iteration {i + 1}: NMF converged in {n_iter} iterations (reconstruction error: {err:.4f})", flush=True)
+
     return S, A, err, n_iter
 
 
 class NMFDecomposer:
-    
-    """Non-negative Matrix Factorization (NMF) Decomposer.
-    
-    Should be able to use different objectve functions (e.g., Frobenius, Kullback-Leibler).
+    def __init__(
+        self,
+        n_components: int,
+        resample_method: str = 'poisson',
+        objective_function: str = 'frobenius',
+        initialization_method: str = 'random',
+        normalization_method: str = 'GMM',
+        max_iter: int = 1000000,
+        num_factorizations: int = 100,
+        random_state: int = 42,
+        tolerance: float = 1e-15,
+        verbose: bool = False,
+        n_jobs: int = max(multiprocessing.cpu_count() - 2, 1)
 
-
-    Input:
-    M (original mutational matrix: n_channels × n_samples)
-        ↓
-    Repeat 100 times:
-    ┌──────────────────────────────────────────────────────────────┐
-    │ 1. (Poisson) resample M → M'                                   │
-    │ 2. Normalize M' (e.g., log, 100X, GMM)                       │
-    │ 3. Run NMF on M' with fixed k = 5                            │
-    │    - Initialize W, H (random or NNDSVD)                     │
-    │    - Minimize KL divergence (or Frobenius, Itakura-Saito)   │
-    │    - Use multiplicative update rules                        │
-    │    - Stop after convergence or max_iters                    │
-    │                                                              │
-    │ Output per replicate:                                       │
-    │   W_i: n_channels × k (signatures)                          │
-    │   H_i: k × n_samples (activities)                           │
-    └──────────────────────────────────────────────────────────────┘
-        ↓
-    Store:
-    - All W_i (shape: 100 × n_channels × k)
-    - All H_i (shape: 100 × k × n_samples)
-
-    Initialization methods: {‘random’, ‘nndsvd’, ‘nndsvda’, ‘nndsvdar’}
-
-    Resampling methods: {'poisson', 'bootstrap'}
-
-    Normalization methods: {'GMM', '100X', 'log2', None}
-
-    Objective functions: ‘frobenius’, ‘kullback-leibler’, ‘itakura-saito’
-        Beta divergence to be minimized, measuring the distance between X and the dot product WH. 
-        Note that values different from ‘frobenius’ (or 2) and ‘kullback-leibler’ (or 1) lead to significantly slower fits. 
-        Note that for beta_loss <= 0 (or ‘itakura-saito’), the input matrix X cannot contain zeros. Used only in ‘mu’ solver.
-    """
-    def __init__(self, n_components: int, resample_method: str = 'poisson', objective_function: str = 'frobenius', initialization_method: str = 'random', normalization_method: str = 'GMM', max_iter: int = 1000000, num_factorizations: int = 100, random_state: int = 42, tolerance: float = 1e-15):
+    ):
         self.n_components = n_components
         self.resample_method = resample_method
         self.objective_function = objective_function
@@ -98,10 +92,18 @@ class NMFDecomposer:
         self.num_factorizations = num_factorizations
         self.random_state = random_state
         self.tolerance = tolerance
+        self.verbose = verbose
+        self.n_jobs = n_jobs
 
     def run(self, X: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        args_list = [
-            (
+        if self.verbose:
+            print(f"Running NMF with the following parameters:", flush=True)
+            for attr, value in self.__dict__.items():
+                print(f"{attr}: {value}", flush=True)
+            print("", flush=True)
+
+        results = Parallel(n_jobs=self.n_jobs, backend='loky')(
+            delayed(_single_factorization_static)(
                 X,
                 self.n_components,
                 self.random_state + i,
@@ -110,13 +112,12 @@ class NMFDecomposer:
                 self.objective_function,
                 self.initialization_method,
                 self.max_iter,
-                self.tolerance
+                self.tolerance,
+                i,
+                self.verbose
             )
             for i in range(self.num_factorizations)
-        ]
-
-        with ProcessPoolExecutor(max_workers=min(multiprocessing.cpu_count(), self.num_factorizations)) as executor:
-            results = list(executor.map(_single_factorization_static, args_list))
+        )
 
         S_all, A_all, err_all, n_iter_all = zip(*results)
         return (
