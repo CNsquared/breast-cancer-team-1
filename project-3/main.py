@@ -8,11 +8,11 @@ from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 from src.models.clustering import consensus_signatures
 import os
-import torch
+#import torch
 
 RERUN_NMF=False
 VERBOSE=False
-GPU = torch.cuda.is_available()
+GPU = False #torch.cuda.is_available()
 
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
