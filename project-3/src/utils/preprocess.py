@@ -32,11 +32,3 @@ class MutPreprocessor:
 
     def get_processed_df(self):
         return self.df_mut
-
-    def get_mutation_matrix(self) -> tuple[np.ndarray, list[str], list[str]]:
-        # TODO: double check if this makes sense
-        return {
-            'X': self.X,
-            'sample_ids': self.sample_ids,
-            'feature_names': self.feature_names
-        }
