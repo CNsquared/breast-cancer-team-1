@@ -12,7 +12,7 @@ import multiprocessing
 # set this to True to rerun the NMF
 APPEND_RESULTS = True # set this to True if you want to append results to existing results
 
-OUTPUT='data/nmf_runs/01_nmf_k_selection_K2-10_1E-8_KL.runs'
+OUTPUT='data/nmf_runs/01_nmf_k_selection_K2-10_1E-15_KL.runs'
 
 # max K
 MAX_K = 10
@@ -43,7 +43,7 @@ def main():
         'max_iter': 1000000,
         'num_factorizations': 100,
         'random_state': 42,
-        'tolerance': 1e-8
+        'tolerance': 1e-15
     }
 
     if APPEND_RESULTS:

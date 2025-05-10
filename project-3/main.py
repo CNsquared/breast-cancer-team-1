@@ -11,7 +11,7 @@ import os
 #from src.models.nmf_runner_gpu import NMFDecomposer as NMFDecomposer_GPU
 
 RERUN_NMF=False
-VERBOSE=False
+VERBOSE=True
 GPU = False #torch.cuda.is_available()
 
 # paths

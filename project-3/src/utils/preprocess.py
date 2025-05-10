@@ -26,17 +26,9 @@ class MutPreprocessor:
         # TODO: do some filtering
         print(f"Filtered from {before} to {len(self.df_mut)} mutations.")
 
-    def _generate_mutation_matrix(self):
-        # this is all made up
-        # TODO: implement generate mutation matrix either here or in mutation_matrix.py
-        self.sample_ids = self.df_mut['patient_id'].unique()
-        self.feature_names = self.df_mut['Hugo_Symbol'].unique()
-        self.X = build_mutation_matrix(self.df_mut)
-
     def _preprocess(self):
         self._load_maf()
         self._filter_mutations()
-        self._generate_mutation_matrix()
 
     def get_processed_df(self):
         return self.df_mut
