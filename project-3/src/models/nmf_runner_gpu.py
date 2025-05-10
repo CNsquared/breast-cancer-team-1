@@ -91,7 +91,7 @@ class NMFDecomposer:
         random_state: int = 42,
         tolerance: float = 1e-15,
         verbose: bool = False,
-        n_jobs: int = max(multiprocessing.cpu_count() - 2, 1)
+        n_jobs: int = max(multiprocessing.cpu_count() - 2, 1),**kwargs
     ):
         self.n_components = n_components
         self.resample_method = resample_method
