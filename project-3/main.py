@@ -80,10 +80,13 @@ def main():
         S_all, A_all, err_all = data["S_all"], data["A_all"], data["err_all"]
     else:
         if GPU :
+            pass
+            '''
             print("Running NMF decomposition with GPU...")
             #nmf_model = NMFDecomposer_GPU(**NMF_PARAMS, verbose=VERBOSE)
             S_all, A_all, err_all, _ = nmf_model.run(X)
             joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
+            '''
         else:
             print("Running NMF decomposition...")
             nmf_model = NMFDecomposer(**NMF_PARAMS, verbose=VERBOSE)
