@@ -91,7 +91,8 @@ class NMFDecomposer:
         random_state: int = 42,
         tolerance: float = 1e-15,
         verbose: bool = False,
-        n_jobs: int = max(multiprocessing.cpu_count() - 2, 1),**kwargs
+        n_jobs: int = max(multiprocessing.cpu_count() - 2, 1),
+        **kwargs
     ):
         self.n_components = n_components
         self.resample_method = resample_method
@@ -110,7 +111,21 @@ class NMFDecomposer:
             for attr, value in self.__dict__.items():
                 print(f"{attr}: {value}", flush=True)
             print("", flush=True)
-
+            
+        for i in range(self.num_factorizations)
+            _single_factorization_static_torch)(
+                    X,
+                    self.n_components,
+                    self.random_state + i,
+                    self.resample_method,
+                    self.normalization_method,
+                    self.objective_function,
+                    self.max_iter,
+                    self.tolerance,
+                    i,
+                    self.verbose
+                )
+        '''
         results = Parallel(n_jobs=self.n_jobs, backend='loky')(
             delayed(_single_factorization_static_torch)(
                 X,
@@ -133,4 +148,4 @@ class NMFDecomposer:
             np.array(A_all),
             np.array(err_all),
             np.array(n_iter_all)
-        )
+        )'''
