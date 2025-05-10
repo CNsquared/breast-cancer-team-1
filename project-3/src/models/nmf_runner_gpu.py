@@ -17,9 +17,11 @@ def _single_factorization_static_torch(
     i: int,
     verbose: bool
 ):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if verbose:
         print(f"Running NMF factorization k={k}, iteration={i + 1}", flush=True)
-
+        print(f"Using device: {device}")
+    
     np.random.seed(seed)
     rng = np.random.default_rng(seed)
 
@@ -41,7 +43,7 @@ def _single_factorization_static_torch(
 
     # Normalize
     X_normalized = normalize_matrix(X_resampled, method=normalization_method).astype(np.float32)
-    X_tensor = torch.tensor(X_normalized, device='cuda')
+    X_tensor = torch.tensor(X_normalized, device=device)
 
     # Set beta loss
     if objective_function == 'kullback-leibler':
@@ -53,20 +55,22 @@ def _single_factorization_static_torch(
 
     # Fit NMF using torchnmf
     model = TorchNMF(
-        X_tensor,
-        rank=k,
-        max_iter=max_iter,
-        tol=tolerance,
-        beta=beta,
-        update_H=True,
-        update_W=True,
-        verbose=verbose
-    )
+        X_tensor.shape,
+        rank=k
+    ).to(device)
+    
+        #max_iter=max_iter,
+        #tol=tolerance,
+        #beta=beta,
+        #update_H=True,
+        #update_W=True,
+        #verbose=verbose
 
-    W_torch, H_torch = model()
+    n_iter = model.fit(X_tensor,max_iter=max_iter,verbose=verbose,beta=beta,tol=tolerance) 
+    W_torch = model.W 
+    H_torch = model.H.t()
     recon = torch.matmul(W_torch, H_torch)
     err = torch.norm(X_tensor - recon, p='fro').item()
-    n_iter = model.n_iter
 
     # Move back to CPU
     S = W_torch.cpu().detach().numpy()
