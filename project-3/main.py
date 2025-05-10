@@ -3,13 +3,16 @@ import pandas as pd
 from src.utils.preprocess import MutPreprocessor
 from src.utils.metadata_utils import load_metadata, merge_with_components
 from src.models.nmf_runner_parallel import NMFDecomposer
+from src.models.nmf_runner_gpu import NMFDecomposer as NMFDecomposer_GPU
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 from src.models.clustering import consensus_signatures
 import os
+import torch
 
 RERUN_NMF=False
 VERBOSE=False
+GPU = torch.cuda.is_available()
 
 # paths
 MUTATIONS_PATH = "data/raw/TCGA.BRCA.mutations.txt"
@@ -76,10 +79,16 @@ def main():
         data = joblib.load(nmf_file)
         S_all, A_all, err_all = data["S_all"], data["A_all"], data["err_all"]
     else:
-        print("Running NMF decomposition...")
-        nmf_model = NMFDecomposer(**NMF_PARAMS, verbose=VERBOSE)
-        S_all, A_all, err_all, _ = nmf_model.run(X)
-        joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
+        if GPU :
+            print("Running NMF decomposition with GPU...")
+            nmf_model = NMFDecomposer_GPU(**NMF_PARAMS, verbose=VERBOSE)
+            S_all, A_all, err_all, _ = nmf_model.run(X)
+            joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
+        else:
+            print("Running NMF decomposition...")
+            nmf_model = NMFDecomposer(**NMF_PARAMS, verbose=VERBOSE)
+            S_all, A_all, err_all, _ = nmf_model.run(X)
+            joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
 
     # -----------------------------------------------------------
     # cluster NMF results to build consensus S and A
