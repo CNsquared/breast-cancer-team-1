@@ -66,18 +66,16 @@ def _single_factorization_static_torch(
         #update_W=True,
         #verbose=verbose
 
-    model.fit(X_tensor.t(),max_iter=max_iter,verbose=verbose,beta=beta,tol=tolerance) 
+    n_iter = model.fit(X_tensor.t(),max_iter=max_iter,verbose=verbose,beta=beta,tol=tolerance) 
     W_torch = model.W 
-    print(X_tensor.shape)
-    print(W_torch.shape)
     H_torch = model.H.t()
-    print(H_torch.shape)
+    
     recon = torch.matmul(W_torch, H_torch)
     err = torch.norm(X_tensor - recon, p='fro').item()
-
+    
     # Move back to CPU
     S = W_torch.cpu().detach().numpy()
-    #A = H_torch.cpu().detach().numpy()
+    A = H_torch.cpu().detach().numpy()
 
     return S, A, err, n_iter
 
@@ -114,9 +112,14 @@ class NMFDecomposer:
             for attr, value in self.__dict__.items():
                 print(f"{attr}: {value}", flush=True)
             print("", flush=True)
-            
+
+        S_all = []
+        A_all = []
+        err_all = []
+        n_iter_all = []
+        
         for i in range(self.num_factorizations):
-            _single_factorization_static_torch(
+            S, A, err, n_iter = _single_factorization_static_torch(
                     X,
                     self.n_components,
                     self.random_state + i,
@@ -128,6 +131,11 @@ class NMFDecomposer:
                     i,
                     self.verbose
                 )
+            S_all.append(S)
+            A_all.append(A)
+            err_all.append(err)
+            n_iter_all.append(n_iter)
+            
         '''
         results = Parallel(n_jobs=self.n_jobs, backend='loky')(
             delayed(_single_factorization_static_torch)(
@@ -144,11 +152,11 @@ class NMFDecomposer:
             )
             for i in range(self.num_factorizations)
         )
-
-        S_all, A_all, err_all, n_iter_all = zip(*results)
+        '''
+        # S_all, A_all, err_all, n_iter_all = zip(*results)
         return (
             np.array(S_all),
             np.array(A_all),
             np.array(err_all),
             np.array(n_iter_all)
-        )'''
+        )
