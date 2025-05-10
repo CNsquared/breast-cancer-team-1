@@ -3,12 +3,12 @@ import pandas as pd
 from src.utils.preprocess import MutPreprocessor
 from src.utils.metadata_utils import load_metadata, merge_with_components
 from src.models.nmf_runner_parallel import NMFDecomposer
-from src.models.nmf_runner_gpu import NMFDecomposer as NMFDecomposer_GPU
 from src.utils.enrichment_tests import test_association
 from src.models.signature_comparator import load_sigprofiler_results, cosine_similarity
 from src.models.clustering import consensus_signatures
 import os
 #import torch
+#from src.models.nmf_runner_gpu import NMFDecomposer as NMFDecomposer_GPU
 
 RERUN_NMF=False
 VERBOSE=False
@@ -81,7 +81,7 @@ def main():
     else:
         if GPU :
             print("Running NMF decomposition with GPU...")
-            nmf_model = NMFDecomposer_GPU(**NMF_PARAMS, verbose=VERBOSE)
+            #nmf_model = NMFDecomposer_GPU(**NMF_PARAMS, verbose=VERBOSE)
             S_all, A_all, err_all, _ = nmf_model.run(X)
             joblib.dump({"S_all": S_all, "A_all": A_all, "err_all": err_all}, nmf_file)
         else:
