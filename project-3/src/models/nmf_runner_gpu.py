@@ -66,15 +66,17 @@ def _single_factorization_static_torch(
         #update_W=True,
         #verbose=verbose
 
-    n_iter = model.fit(X_tensor,max_iter=max_iter,verbose=verbose,beta=beta,tol=tolerance) 
+    model.fit(X_tensor,max_iter=max_iter,verbose=verbose,beta=beta,tol=tolerance) 
     W_torch = model.W 
-    H_torch = model.H.t()
-    recon = torch.matmul(W_torch, H_torch)
-    err = torch.norm(X_tensor - recon, p='fro').item()
+    print(X_tensor.shape)
+    print(W_torch.shape)
+    #H_torch = model.H.t()
+    #recon = torch.matmul(W_torch, H_torch)
+    #err = torch.norm(X_tensor - recon, p='fro').item()
 
     # Move back to CPU
     S = W_torch.cpu().detach().numpy()
-    A = H_torch.cpu().detach().numpy()
+    #A = H_torch.cpu().detach().numpy()
 
     return S, A, err, n_iter
 
@@ -113,7 +115,7 @@ class NMFDecomposer:
             print("", flush=True)
             
         for i in range(self.num_factorizations)
-            _single_factorization_static_torch)(
+            _single_factorization_static_torch(
                     X,
                     self.n_components,
                     self.random_state + i,
