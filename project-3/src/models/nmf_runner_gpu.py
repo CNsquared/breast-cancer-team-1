@@ -135,7 +135,7 @@ class NMFDecomposer:
             A_all.append(A)
             err_all.append(err)
             n_iter_all.append(n_iter)
-            
+    
         '''
         results = Parallel(n_jobs=self.n_jobs, backend='loky')(
             delayed(_single_factorization_static_torch)(
