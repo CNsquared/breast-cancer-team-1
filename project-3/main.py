@@ -117,11 +117,9 @@ def main():
     for j in range(num_samples):
         # solve centroids_s.T @ w = X[:, j]  with w ≥ 0
         signature_weights_nnls[:, j], _ = nnls(all_centroids_s.T, X[:, j])
-    #print(f"Signature weights shape: {signature_weights_nnls.shape}")
+    print(f"Signature weights shape from nnls: {signature_weights_nnls.shape}")
     
-    #Calculate the signature weights using clustering
-    _, signature_weights_clustering, sil_score_a = consensus_signatures(X, A_all, k = 2, average_threshold=0.8, minimum_threshold=0.2)
-    
+
     print("-" * 50)
     
     
