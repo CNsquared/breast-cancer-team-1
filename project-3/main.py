@@ -122,8 +122,11 @@ def main():
 
     print("-" * 50)
     
-    
-
+    # write activity matrix
+    activity_matrix = np.column_stack((sample_ids, signature_weights_nnls.T))
+    activity_matrix = pd.DataFrame(activity_matrix, columns=['SampleID', 'SBS_A', 'SBS_B', 'SBS_C', 'SBS_D'])
+    activity_matrix.to_csv('results/tables/activity_matrix_nnls.csv', index=False)
+    #
 
     # -----------------------------------------------------------
     # annotate metadata and see if we can find associations with signatures
