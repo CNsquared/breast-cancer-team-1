@@ -13,7 +13,7 @@ def align_run_to_ref(S_ref, S_run):
 
 def consensus_signatures(X, S_runs, k,
                          average_threshold=0.8,
-                         minimum_threshold=0.2, reconstruction=True):
+                         minimum_threshold=0.2):
     """
     X:       (n_samples x n_features) original data matrix
     S_runs:  list of (n_features x k) S-matrices from repeated NMF
@@ -67,6 +67,7 @@ def consensus_signatures(X, S_runs, k,
     sil_samples = silhouette_samples(all_sigs_norm, labels, metric='cosine')
 
     centroids = []
+    stable_centroids = []
     for cid in range(k):
         idx = np.where(labels == cid)[0]
         if idx.size == 0:
@@ -76,17 +77,18 @@ def consensus_signatures(X, S_runs, k,
         min_sil = sil_vals.min()
         # require average stability ≥0.80 and no individual stability <0.20
         print(f"Cluster {cid}: avg_sil={avg_sil:.3f}, min_sil={min_sil:.3f}")
+        members = all_sigs[idx]
+        c = members.mean(axis=0)
+        c = c / (c.sum() + 1e-12)
         if avg_sil >= average_threshold and min_sil >= minimum_threshold:
-            members = all_sigs[idx]
-            c = members.mean(axis=0)
-            c = c / (c.sum() + 1e-12)
-            centroids.append(c)
+            stable_centroids.append(c)
+        centroids.append(c)
             
-    print(len(centroids), "stable centroids found")
+    print(len(stable_centroids), "stable centroids found")
 
     # 5) global silhouette score
     sil_score = silhouette_score(all_sigs_norm, labels, metric='cosine')
 
    
 
-    return centroids, sil_score
+    return stable_centroids, centroids,  sil_score

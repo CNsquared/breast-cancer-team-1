@@ -34,7 +34,7 @@ ASSOCIATION_COLUMNS=['sex','age','cancer_subtype']
 # }
 
 NMF_PARAMS = {
-    'n_components': 25,  # number of signatures to extract
+    'n_components': 2,  # number of signatures to extract
     'resample_method': 'poisson', # resampling method used on normalized X'
     'objective_function': 'frobenius', # objective function to minimize for nmf
     'initialization_method': 'random', # initialization method for S and A
@@ -97,24 +97,30 @@ def main():
     # cluster NMF results to build consensus S and A
 
     print("Partition clustering NMF results...")
-    centroids_s, sil_score_s = consensus_signatures(X, S_all, k = 25, average_threshold=0.8, minimum_threshold=0.2, reconstruction=False)
+    centroids_s, all_centroids_s, sil_score_s = consensus_signatures(X, S_all, k = 2, average_threshold=0.8, minimum_threshold=0.2)
     #centroids_s, sil_score_s, recon_err_s = consensus_signatures(X, S_all, k = 25, average_threshold=-1, minimum_threshold=-1)
 
     import numpy as np
     import time
-    centroids_s = np.array(centroids_s)
-    print(f"Centroids shape: {centroids_s.shape}")
     
-    print("-" * 50)
-    time_start = time.time()
-    centroids_a, sil_score_a = consensus_signatures(X, A_all.T, k = 25, average_threshold=0.22, minimum_threshold=-0.1, reconstruction=False)
-    #centroids_a, sil_score_a, recon_err_a = consensus_signatures(X.T, A_all.T, k = 25, average_threshold=-1, minimum_threshold=-1, reconstruction=False)
+    
+    #Calculate the signature weights using NNLS
+    from scipy.optimize import nnls
+    centroids_s = np.array(centroids_s)
+    all_centroids_s = np.array(all_centroids_s)
+    #print(f"Centroids shape: {centroids_s.shape}")
+    
+    # centroids_s: (k, features), X: (features, num_samples)
+    k, num_samples = all_centroids_s.shape[0], X.shape[1]
+    signature_weights_nnls = np.zeros((k, num_samples))
 
-    centroids_a = np.array(centroids_a)
-    time_end = time.time()
-
-    print(f"Time taken for consensus signatures: {time_end - time_start} seconds")
-    print(f"Centroids shape: {centroids_a.shape}")
+    for j in range(num_samples):
+        # solve centroids_s.T @ w = X[:, j]  with w ≥ 0
+        signature_weights_nnls[:, j], _ = nnls(all_centroids_s.T, X[:, j])
+    #print(f"Signature weights shape: {signature_weights_nnls.shape}")
+    
+    #Calculate the signature weights using clustering
+    _, signature_weights_clustering, sil_score_a = consensus_signatures(X, A_all, k = 2, average_threshold=0.8, minimum_threshold=0.2)
     
     print("-" * 50)
     
