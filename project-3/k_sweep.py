@@ -9,14 +9,6 @@ from src.models.clustering import consensus_signatures
 import os
 import multiprocessing
 
-# set this to True to rerun the NMF
-APPEND_RESULTS = True # set this to True if you want to append results to existing results
-
-OUTPUT='data/nmf_runs/01_nmf_k_selection_K2-10_1E-15_KL.runs'
-
-# max K
-MAX_K = 10
-
 def compare_dicts(d1, d2):
     mismatches = {}
     all_keys = set(d1.keys()).union(d2.keys())
@@ -30,21 +22,13 @@ def compare_dicts(d1, d2):
     return mismatches
 
 
-def main():
+def main(NMF_PARAMS:dict, START_K: int, MAX_K: int, OUTPUT: str = '', APPEND_RESULTS: bool = True):
+
+    if OUTPUT == '':
+        OUTPUT = 'data/nmf_runs/01_nmf_' + '_'.join([str(v) for v in NMF_PARAMS.values()]) + '.runs'
+
     df_sbs = pd.read_csv('data/processed/BRCA.SBS96.all', sep='\t', index_col=0)
     X = np.array(df_sbs)
-
-
-    NMF_PARAMS = {
-        'resample_method': 'poisson',
-        'objective_function': 'kullback-leibler',
-        'initialization_method': 'random',
-        'normalization_method': 'GMM',
-        'max_iter': 1000000,
-        'num_factorizations': 100,
-        'random_state': 42,
-        'tolerance': 1e-15
-    }
 
     if APPEND_RESULTS:
         try:
@@ -67,12 +51,11 @@ def main():
         results = {}
         results['params'] = NMF_PARAMS
 
-    start_k = max(2,len(results) + 1)
+    start_k = max(START_K,START_K + len(results) + 1)
     for k in range(start_k,MAX_K+1):
         print(f'Running NMF with k={k}', flush=True)
         NMF_PARAMS['n_components'] = k
         nmf_model = NMFDecomposer(**NMF_PARAMS, verbose=True, n_jobs=max(1, multiprocessing.cpu_count() - 1))
-        #nmf_model = NMFDecomposer(**NMF_PARAMS, verbose=True)
         time_start = time.time()
         S_all, A_all, err_all, n_iter_all = nmf_model.run(X)
         time_end = time.time()
@@ -88,4 +71,90 @@ def main():
             pickle.dump(results, f)
 
 if __name__ == "__main__":
-    main()
+    # k sweep
+    NMF_PARAMS = {
+        'resample_method': 'poisson',
+        'objective_function': 'kullback-leibler',
+        'initialization_method': 'nndsvda',
+        'normalization_method': 'GMM',
+        'max_iter': 1000000,
+        'num_factorizations': 100,
+        'random_state': 42,
+        'tolerance': 1e-15
+    }
+    main(NMF_PARAMS, 2, 10)
+
+    # check initialization method
+
+    NMF_PARAMS = {
+        'resample_method': 'poisson',
+        'objective_function': 'kullback-leibler',
+        'normalization_method': 'GMM',
+        'max_iter': 1000000,
+        'num_factorizations': 100,
+        'random_state': 42,
+        'tolerance': 1e-15
+    }
+
+    for init_method in ['random', 'nndsvdar', 'nndsvda', 'nndsvd']:
+        try:
+            NMF_PARAMS['initialization_method'] = init_method
+            main(NMF_PARAMS, 3, 5)
+        except:
+            print(f"Initialization method {init_method} failed")
+            continue
+
+    # check resampling method
+    NMF_PARAMS = {
+        'objective_function': 'kullback-leibler',
+        'initialization_method': 'nndsvda',
+        'normalization_method': 'GMM',
+        'max_iter': 1000000,
+        'num_factorizations': 100,
+        'random_state': 42,
+        'tolerance': 1e-15
+    }
+
+    for resample_method in ['poisson', 'bootstrap']:
+        try:
+            NMF_PARAMS['resample_method'] = resample_method
+            main(NMF_PARAMS, 3, 5)
+        except:
+            print(f"Resampling method {resample_method} failed")
+            continue
+
+    # check normalization method
+    NMF_PARAMS = {
+        'resample_method': 'poisson',
+        'objective_function': 'kullback-leibler',
+        'initialization_method': 'nndsvda',
+        'max_iter': 1000000,
+        'num_factorizations': 100,
+        'random_state': 42,
+        'tolerance': 1e-15
+    }
+    for normalization_method in ['GMM', '100X', 'log2', 'None']:
+        try:
+            NMF_PARAMS['normalization_method'] = normalization_method
+            main(NMF_PARAMS, 3, 5)
+        except:
+            print(f"Normalization method {normalization_method} failed")
+            continue
+
+    # check objective function
+    NMF_PARAMS = {
+        'resample_method': 'poisson',
+        'initialization_method': 'nndsvda',
+        'normalization_method': 'GMM',
+        'max_iter': 1000000,
+        'num_factorizations': 100,
+        'random_state': 42,
+        'tolerance': 1e-15
+    }
+    for objective_function in ['frobenius', 'kullback-leibler', 'itakura-saito']:
+        try:
+            NMF_PARAMS['objective_function'] = objective_function
+            main(NMF_PARAMS, 3, 5)
+        except:
+            print(f"Objective function {objective_function} failed")
+            continue
