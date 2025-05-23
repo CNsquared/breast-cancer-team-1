@@ -1,4 +1,4 @@
-name: project3_env
+name: project4_env
 channels:
   - conda-forge
   - bioconda
