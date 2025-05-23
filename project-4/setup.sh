@@ -7,8 +7,18 @@
 # Usage: ./setup.sh
 # Make sure you are in the root of the project-3 directory before running this script.
 
-conda env create -f project4_env.yml
-conda env update -f project4_env.yml
+SKIP_CONDA_UPDATE=false
+
+for arg in "$@"; do
+    if [[ "$arg" == "--skip-conda-update" ]]; then
+        SKIP_CONDA_UPDATE=true
+    fi
+done
+
+if [ "$SKIP_CONDA_UPDATE" = false ]; then
+    conda env create -f project4_env.yml
+    conda env update -f project4_env.yml
+fi
 
 source $(conda info --base)/etc/profile.d/conda.sh
 conda activate project4_env
@@ -52,6 +62,15 @@ if [ -f "Supplementary Tables 1-4.xls" ]; then
 else
     echo "Downloading Supplementary Tables 1-4.xls"
     gdown "https://drive.google.com/uc?id=${SUPL_TABLE_ID}"
+fi
+
+# download dndscv genes
+DNDS_GENES_ID='1a_Zd6pZrCpGowaM9bYDmtPy6uSvPx8ik'
+if [ -f "dndscv_genes.txt" ]; then
+    echo "dndscv_genes.txt already exists. Skipping download."
+else
+    echo "Downloading dndscv_genes.txt"
+    gdown "https://drive.google.com/uc?id=${DNDS_GENES_ID}"
 fi
 
 echo "Setup complete."
