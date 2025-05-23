@@ -1,0 +1,40 @@
+No existing file, making new file data/nmf_runs/01_nmf_poisson_kullback-leibler_nndsvda_GMM_1000000_100_42_1e-15.runs
+Running NMF with k=4
+Running NMF with the following parameters:
+n_components: 4
+resample_method: poisson
+objective_function: kullback-leibler
+initialization_method: nndsvda
+normalization_method: GMM
+max_iter: 1000000
+num_factorizations: 100
+random_state: 42
+tolerance: 1e-15
+verbose: True
+n_jobs: 7
+
+Running NMF factorization k=4, iteration=3
+Running NMF factorization k=4, iteration=6
+Running NMF factorization k=4, iteration=5
+Running NMF factorization k=4, iteration=1
+Running NMF factorization k=4, iteration=2
+Running NMF factorization k=4, iteration=7
+Running NMF factorization k=4, iteration=4
+Running NMF factorization k=4, iteration=8
+Running NMF factorization k=4, iteration=9
+Running NMF factorization k=4, iteration=10
+Running NMF factorization k=4, iteration=11
+Running NMF factorization k=4, iteration=12
+Running NMF factorization k=4, iteration=13
+Running NMF factorization k=4, iteration=14
+Running NMF factorization k=4, iteration=15
+Running NMF factorization k=4, iteration=16
+Running NMF factorization k=4, iteration=17
+Running NMF factorization k=4, iteration=18
+Running NMF factorization k=4, iteration=19
+Running NMF factorization k=4, iteration=20
+Running NMF factorization k=4, iteration=21
+Running NMF factorization k=4, iteration=22
+Running NMF factorization k=4, iteration=23
+Running NMF factorization k=4, iteration=24
+Running NMF factorization k=4, iteration=25

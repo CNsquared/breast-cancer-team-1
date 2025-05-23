@@ -82,7 +82,7 @@ if __name__ == "__main__":
         'random_state': 42,
         'tolerance': 1e-15
     }
-    main(NMF_PARAMS, 2, 10)
+    #main(NMF_PARAMS, 2, 10)
 
     # check initialization method
 

@@ -1,0 +1,17 @@
+name: project3_env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - ipykernel
+  - nb_conda_kernels
+  - gdown
+  - statsmodels
+  - pyyaml
+  - joblib
