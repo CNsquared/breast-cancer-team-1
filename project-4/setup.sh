@@ -36,4 +36,22 @@ else
     gunzip gencode.v23lift37.pc_transcripts.fa.gz
 fi
 
+# download pam50 gene list
+PAM50_GENESET_ID='1ggB-Ds39xU4POwOx020aPiLN3Y3nqQ-v'
+if [ -f "pam50.tsv" ]; then
+    echo "pam50.tsv already exists. Skipping download."
+else
+    echo "Downloading pam50 gene list"
+    gdown "https://drive.google.com/uc?id=${PAM50_GENESET_ID}"
+fi
+
+# download supplementary tables
+SUPL_TABLE_ID='1M7PHOeb4AxAr0qaV6MSOVs_rSn391Eg-'
+if [ -f "Supplementary Tables 1-4.xls" ]; then
+    echo "Supplementary Tables 1-4.xls already exists. Skipping download."
+else
+    echo "Downloading Supplementary Tables 1-4.xls"
+    gdown "https://drive.google.com/uc?id=${SUPL_TABLE_ID}"
+fi
+
 echo "Setup complete."
