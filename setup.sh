@@ -7,11 +7,11 @@
 # Usage: ./setup.sh
 # Make sure you are in the root of the project-3 directory before running this script.
 
-conda env create -f project3_env.yml
-conda env update -f project3_env.yml
+conda env create -f project4_env.yml
+conda env update -f project4_env.yml
 
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate project3_env
+conda activate project4_env
 
 cd data/raw
 
