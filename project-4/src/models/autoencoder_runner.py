@@ -9,15 +9,18 @@ from src.models.autoencoder import GeneExpressionAutoencoder
 
 
 class GeneExpressionRunner:
-    def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = 'cpu'):
+    def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = 'cpu', hidden_dims: List[int] = [128, 64, 32], lr: float = 1e-3):
         self.X: np.ndarray = input_data  # shape (n_samples, n_genes)
         self.latent_dim: int = latent_dim
         self.device: str = device
+        self.hidden_dims: List[int] = hidden_dims
+        self.lr: float = lr # learning rate
 
     def build_model(self) -> nn.Module:
         model = GeneExpressionAutoencoder(
             input_dim=self.X.shape[1],
-            latent_dim=self.latent_dim
+            latent_dim=self.latent_dim,
+            hidden_dims=self.hidden_dims
         ).to(self.device)
         return model
 
@@ -36,7 +39,7 @@ class GeneExpressionRunner:
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 
         for epoch in range(epochs):
             model.train()
