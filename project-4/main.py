@@ -10,21 +10,19 @@ RUN_EACH_SUBTYPE = True
 
 def main():
     # Trains autoencoder on all samples of specified subtype and saves latent space and cross-validation losses.
-    SUBTYPE='BRCA_Basal' 
-    LATENT_DIM=5
     # preprocess expression data
-    df_exp = GeneExpPreprocessor(save=True, subtypes=[SUBTYPE]).get_df()
+    df_exp = GeneExpPreprocessor(save=True).get_df()
     # run cross validation
-    runner = GeneExpressionRunner(df_exp, latent_dim=LATENT_DIM)
+    runner = GeneExpressionRunner(df_exp)
     cv_losses = runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
 
     # train on all samples and get latent space
     latent = runner.train_all_and_encode()
     df_latent = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
-    df_latent.to_csv(f"results/tables/latent_space_{LATENT_DIM}dim_{SUBTYPE}.csv")
+    df_latent.to_csv(f"results/tables/latent_space.csv")
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
-    cv_losses_df.to_csv(f"results/tables/cv_losses_{LATENT_DIM}dim_{SUBTYPE}.csv", index=False, header=False)
+    cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
 
 def each_subtype():
     # Runs cross-validation for each subtype and saves latent space and cross-validation losses.
