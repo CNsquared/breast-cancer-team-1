@@ -18,7 +18,7 @@ class GeneExpPreprocessor:
             filter_var_percentile_threshold: float = 0.5, # e.g. 0.1 means keep top 90% variable genes
             filter_exp_threshold: float = 1,
             metadata_path: str = 'data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv',
-            subtypes: list[str] = ['BRCA_Basal'],
+            subtypes: list[str] = ['BRCA_Basal'], # ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']
             filter_subtypes: bool = True
         ):
         self.expr_path = expr_path
