@@ -55,13 +55,13 @@ else
     gdown "https://drive.google.com/uc?id=${PAM50_GENESET_ID}"
 fi
 
-# download supplementary tables
-SUPL_TABLE_ID='1M7PHOeb4AxAr0qaV6MSOVs_rSn391Eg-'
-if [ -f "Supplementary Tables 1-4.xls" ]; then
-    echo "Supplementary Tables 1-4.xls already exists. Skipping download."
+# download survival data table
+SURVIVAL_DATA_ID='1gdDy5GgMYg3Ir_iV-OEjFMzYy2usd9OJ'
+if [ -f "data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv" ]; then
+    echo "data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv already exists. Skipping download."
 else
-    echo "Downloading Supplementary Tables 1-4.xls"
-    gdown "https://drive.google.com/uc?id=${SUPL_TABLE_ID}"
+    echo "Downloading data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv"
+    gdown "https://drive.google.com/uc?id=${SURVIVAL_DATA_ID}"
 fi
 
 # download dndscv genes
