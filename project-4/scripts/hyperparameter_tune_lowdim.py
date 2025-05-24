@@ -22,7 +22,7 @@ X = df_exp.to_numpy()
 os.makedirs("results/tuning", exist_ok=True)
 
 # Define your hyperparameter grid
-latent_dim = 20
+latent_dim = 5
 hidden_dims = [128, 64]
 batch_sizes = [16, 32, 64, 128, 256]
 learning_rates = [1e-2, 5e-3, 1e-3, 5e-4, 1e-4, 1e-5]
@@ -52,14 +52,14 @@ for batch_size, lr in product(batch_sizes, learning_rates):
     })
     print(f'time: {t_end - t_start:.2f}s, mean loss: {mean_loss:.4f}, std: {np.std(fold_losses):.4f}')
     df_results = pd.DataFrame(results).sort_values('val_loss_mean')
-    df_results.to_csv('results/tuning/hyperparameter_tuning_results_fine_tune.csv', index=False)
+    df_results.to_csv('results/tuning/hyperparameter_tuning_results_low_dim.csv', index=False)
 
 # Save results as DataFrame
 df_results = pd.DataFrame(results).sort_values('val_loss_mean')
 
 # Save raw results
-df_results.to_csv('results/tuning/hyperparameter_tuning_results_fine_tune.csv', index=False)
-print("Results saved to results/tuning/hyperparameter_tuning_results_fine_tune.csv")
+df_results.to_csv('results/tuning/hyperparameter_tuning_results_low_dim.csv', index=False)
+print("Results saved to results/tuning/hyperparameter_tuning_results_low_dim.csv")
 
 # ========== Visualizations ========== #
 
@@ -71,23 +71,7 @@ plt.title("Val Loss by Batch Size and Learning Rate")
 plt.xlabel("Learning Rate")
 plt.ylabel("Batch Size")
 plt.tight_layout()
-plt.savefig("results/tuning/heatmap_loss_batch_lr_fine_tune.png")
-plt.close()
-
-sns.lineplot(data=df_results, x="batch_size", y="val_loss_mean", hue="lr", marker="o")
-plt.title("Validation Loss vs Batch Size")
-plt.ylabel("Mean Validation Loss")
-plt.xlabel("Batch Size")
-plt.tight_layout()
-plt.savefig("results/tuning/lineplot_loss_batch_fine_tune.png")
-plt.close()
-
-sns.scatterplot(data=df_results, x='time', y='val_loss_mean', hue='lr', style='batch_size')
-plt.title("Time vs Validation Loss")
-plt.xlabel("Training Time (s)")
-plt.ylabel("Validation Loss")
-plt.tight_layout()
-plt.savefig("results/tuning/scatter_time_vs_loss_fine_tune.png")
+plt.savefig("results/tuning/heatmap_loss_batch_lr_low_dim.png")
 plt.close()
 
 
