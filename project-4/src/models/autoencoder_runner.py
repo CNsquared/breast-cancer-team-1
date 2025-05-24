@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import copy
 from typing import List, Tuple
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
@@ -9,12 +10,14 @@ from src.models.autoencoder import GeneExpressionAutoencoder
 
 
 class GeneExpressionRunner:
-    def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = 'cpu', hidden_dims: List[int] = [128, 64, 32], lr: float = 1e-3):
+    def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
         self.X: np.ndarray = input_data  # shape (n_samples, n_genes)
         self.latent_dim: int = latent_dim
-        self.device: str = device
+        self.device: str = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
         self.hidden_dims: List[int] = hidden_dims
-        self.lr: float = lr # learning rate
+        self.lr: float = lr  # learning rate
+        self.batch_size: int = batch_size
 
     def build_model(self) -> nn.Module:
         model = GeneExpressionAutoencoder(
@@ -29,19 +32,23 @@ class GeneExpressionRunner:
         model: nn.Module,
         X_train: np.ndarray,
         X_val: np.ndarray,
-        epochs: int = 100,
-        batch_size: int = 16
+        patience: int = 10,
+        max_epochs: int = 200
     ) -> Tuple[nn.Module, float]:
         X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(self.device)
         X_val_tensor = torch.tensor(X_val, dtype=torch.float32).to(self.device)
 
         dataset = TensorDataset(X_train_tensor)
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 
-        for epoch in range(epochs):
+        best_model_state = None
+        best_val_loss = float('inf')
+        patience_counter = 0
+
+        for epoch in range(max_epochs):
             model.train()
             for batch in loader:
                 x_batch = batch[0]
@@ -50,13 +57,25 @@ class GeneExpressionRunner:
                 loss.backward()
                 optimizer.step()
 
-        model.eval()
-        with torch.no_grad():
-            val_loss = criterion(model(X_val_tensor), X_val_tensor).item()
+            model.eval()
+            with torch.no_grad():
+                val_loss = criterion(model(X_val_tensor), X_val_tensor).item()
 
-        return model, val_loss
+            if val_loss < best_val_loss - 1e-4:
+                best_val_loss = val_loss
+                best_model_state = copy.deepcopy(model.state_dict())
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    break
 
-    def cross_validate(self, k: int = 5, epochs: int = 100) -> List[float]:
+        if best_model_state:
+            model.load_state_dict(best_model_state)
+
+        return model, best_val_loss
+
+    def cross_validate(self, k: int = 5, patience: int = 10, max_epochs: int = 200) -> List[float]:
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X)
 
@@ -66,18 +85,18 @@ class GeneExpressionRunner:
         for fold, (train_idx, val_idx) in enumerate(kf.split(X_scaled)):
             X_train, X_val = X_scaled[train_idx], X_scaled[val_idx]
             model = self.build_model()
-            _, val_loss = self.train_autoencoder(model, X_train, X_val, epochs=epochs)
+            _, val_loss = self.train_autoencoder(model, X_train, X_val, patience=patience, max_epochs=max_epochs)
             fold_losses.append(val_loss)
-            print(f"Fold {fold+1}/{k} - Val Loss: {val_loss:.4f}")
+            print(f"Fold {fold + 1}/{k} - Val Loss: {val_loss:.4f}")
 
         return fold_losses
 
-    def train_all_and_encode(self, epochs: int = 100) -> np.ndarray:
+    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200) -> np.ndarray:
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X)
 
         model = self.build_model()
-        model, _ = self.train_autoencoder(model, X_scaled, X_scaled, epochs=epochs)
+        model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs)
 
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(self.device)
         model.eval()
