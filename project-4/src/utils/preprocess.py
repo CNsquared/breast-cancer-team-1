@@ -3,7 +3,6 @@ import numpy as np
 
 from src.utils.tpm_normalization import parse_gencode_fasta, longest_CDS, log1p_TPM_normalize
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split as TTS
 
 class GeneExpPreprocessor:
     """This class preprocesses the gene expression file"""
