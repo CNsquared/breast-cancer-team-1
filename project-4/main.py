@@ -9,6 +9,7 @@ import pandas as pd
 RUN_EACH_SUBTYPE = True
 
 def main():
+    # Trains autoencoder on all samples of specified subtype and saves latent space and cross-validation losses.
     SUBTYPE='BRCA_Basal' 
     LATENT_DIM=5
     # preprocess expression data
@@ -26,6 +27,7 @@ def main():
     cv_losses_df.to_csv(f"results/tables/cv_losses_{LATENT_DIM}dim_{SUBTYPE}.csv", index=False, header=False)
 
 def each_subtype():
+    # Runs cross-validation for each subtype and saves latent space and cross-validation losses.
     LATENT_DIM=5
     all_cv_losses = []
     subtypes = ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']
