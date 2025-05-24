@@ -19,5 +19,23 @@ def main():
     df_latent = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
     df_latent.to_csv("results/tables/latent_space.csv")
 
+def each_subtype():
+    for subtype in ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']:
+        print(f"Running for subtype: {subtype}")
+
+        # preprocess expression data
+        df_exp = GeneExpPreprocessor(subtypes=[subtype]).get_df()
+
+        # run cross validation
+        runner = GeneExpressionRunner(df_exp, latent_dim=5)
+        cv_losses = runner.cross_validate(k=5)
+        print(f'cv_losses: {cv_losses}')
+
+        # train on all samples and get latent space
+        latent = runner.train_all_and_encode(epochs=100)
+        df_latent = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+        df_latent.to_csv(f"results/tables/latent_space_{subtype}.csv")
+
 if __name__ == "__main__":
     main()
+    each_subtype()
