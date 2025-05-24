@@ -57,19 +57,19 @@ fi
 
 # download survival data table
 SURVIVAL_DATA_ID='1gdDy5GgMYg3Ir_iV-OEjFMzYy2usd9OJ'
-if [ -f "data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv" ]; then
-    echo "data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv already exists. Skipping download."
+if [ -f "brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv" ]; then
+    echo "brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv already exists. Skipping download."
 else
-    echo "Downloading data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv"
+    echo "Downloading brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv"
     gdown "https://drive.google.com/uc?id=${SURVIVAL_DATA_ID}"
 fi
 
 # download dndscv genes
 DNDS_GENES_ID='1a_Zd6pZrCpGowaM9bYDmtPy6uSvPx8ik'
-if [ -f "dndscv_genes.txt" ]; then
-    echo "dndscv_genes.txt already exists. Skipping download."
+if [ -f "dndscv.csv" ]; then
+    echo "dndscv.csv already exists. Skipping download."
 else
-    echo "Downloading dndscv_genes.txt"
+    echo "Downloading dndscv.csv"
     gdown "https://drive.google.com/uc?id=${DNDS_GENES_ID}"
 fi
 
