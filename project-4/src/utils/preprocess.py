@@ -16,7 +16,10 @@ class GeneExpPreprocessor:
             save: bool = False,
             auto_preprocess: bool = True,
             filter_var_percentile_threshold: float = 0.5, # e.g. 0.1 means keep top 90% variable genes
-            filter_exp_threshold: float = 1
+            filter_exp_threshold: float = 1,
+            metadata_path: str = 'data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv',
+            subtypes: list[str] = ['BRCA_Basal'],
+            filter_subtypes: bool = True
         ):
         self.expr_path = expr_path
         self.save = save
@@ -27,6 +30,9 @@ class GeneExpPreprocessor:
         self.gencode_fasta_path = gencode_fasta_path
         self.filter_var_percentile_threshold = filter_var_percentile_threshold
         self.filter_exp_threshold = filter_exp_threshold
+        self.metadata_path = metadata_path
+        self.subtypes = subtypes
+        self.filter_subtypes = filter_subtypes
         if auto_preprocess:
             self._preprocess()
 
@@ -36,7 +42,16 @@ class GeneExpPreprocessor:
         self.df_exp = self.df_exp.astype(float)
         print(f"Loaded matrix with {self.df_exp.shape[0]} samples x {self.df_exp.shape[1]} genes")
 
-    def _filter(self) -> None:
+    def _filter_subtype(self) -> None:
+        """Filter by subtype"""
+        if self.filter_subtypes:
+            print(f'Subset data to patients with subtype: {self.subtypes}')
+            metadata = pd.read_csv(self.metadata_path, sep='\t', index_col=1)
+            subset = metadata.loc[metadata.Subtype.isin(self.subtypes)]
+            self.df_exp = self.df_exp.loc[self.df_exp.index.get_level_values('patient_id').intersection(subset.index)]
+            print(f'Subset data to {len(self.df_exp.index.get_level_values("patient_id").unique())} patients with subtype: {self.subtypes}')
+
+    def _filter_expr(self) -> None:
         """Filter out low variance genes and low expression genes
         This should be run after log1p(tpm)
         """
@@ -85,19 +100,12 @@ class GeneExpPreprocessor:
     def _preprocess(self) -> None:
         self._load_expr()
         self._log1p_tpm_normalization()
-        self._filter()
+        self._filter_subtype()
+        self._filter_expr()
         self._subset()
-        self._normalize()
+        
         if self.save:
             self.df_exp.to_csv(self.output_path, sep='\t', index=True)
-
-    def _normalize(self) -> None:
-        """Z-score genes"""
-        print("Normalizing (Z-score) Gene Expression")
-        self.raw_tpm = self.df_exp.copy()
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(self.df_exp)
-        self.df_exp = pd.DataFrame(X_scaled, index=self.df_exp.index, columns=self.df_exp.columns)
 
     def get_df(self):
         return self.df_exp
