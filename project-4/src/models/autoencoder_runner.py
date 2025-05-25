@@ -13,7 +13,11 @@ class GeneExpressionRunner:
     def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
         self.X: np.ndarray = input_data  # shape (n_samples, n_genes)
         self.latent_dim: int = latent_dim
-        self.device: str = device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device: str = device if device is not None else (
+    "cuda" if torch.cuda.is_available() else (
+        "mps" if torch.backends.mps.is_available() and torch.backends.mps.is_built() else "cpu"
+    )
+)
         print(f"Using device: {self.device}")
         self.hidden_dims: List[int] = hidden_dims
         self.lr: float = lr  # learning rate
