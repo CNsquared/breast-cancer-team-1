@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('--max_epochs', type=int, default=200, help='Maximum epochs')
     parser.add_argument('--patience', type=int, default=10, help='Number of epocs where model training saturated')
 
-    parser.add_argument('--top_N', type=int, default=500, help='Top 'n' genes used for analysis')
+    parser.add_argument('--top_N', type=int, default=500, help="Top 'n' genes used for analysis")
     parser.add_argument('--subset_method', type=str, default='dndscv', help='Method to select top 'n' genes')
 
     return parser.parse_args()
