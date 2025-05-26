@@ -41,7 +41,7 @@ for latent_dim, hidden_dims, lr in product(latent_dims, hidden_layer_options, le
             device=device
         )
 
-        fold_losses = runner.cross_validate(k=5, epochs=100)
+        fold_losses = runner.cross_validate(k=5, max_epochs=100)
         mean_loss = np.mean(fold_losses)
         t_end = time.time()
         if device == 'cpu':

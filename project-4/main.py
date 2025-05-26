@@ -7,12 +7,33 @@ from src.utils.sampling import SamplingRunner
 import numpy as np
 import pandas as pd
 
+import argparse
+
 RUN_EACH_SUBTYPE = True
 
+def parse_args():
+    parser = argparse.ArgumentParser()  
+    
+    parser.add_argument('--latent_dim', type=int, default=5, help='Number of latent features')
+    parser.add_argument('--hidden_dim', type=int, nargs='+', default=[128, 64],
+                        help='Hidden dimensions in encoder, e.g., --hidden_dim 128 64')
+    parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
+    parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
+    parser.add_argument('--max_epochs', type=int, default=200, help='Maximum epochs')
+    parser.add_argument('--patience', type=int, default=10, help='Number of epocs where model training saturated')
+
+    parser.add_argument('--top_N', type=int, default=500, help="Top 'n' genes used for analysis")
+    parser.add_argument('--subset_method', type=str, default='dndscv', help="Method to select top 'n' genes")
+
+    return parser.parse_args()
+    
 def main():
+    args = parse_args()
+    
     # Trains autoencoder on all samples of specified subtype and saves latent space and cross-validation losses.
     # preprocess expression data
-    df_exp = GeneExpPreprocessor(save=True).get_df()
+    df_exp = GeneExpPreprocessor(save=True,top_N=args.top_N,
+        subset_method=args.subset_method).get_df()
     # run cross validation
     
     print(f"Expression data shape: {df_exp.shape}")
@@ -21,7 +42,10 @@ def main():
     df_exp = runner.run(df_exp, verbose=True)
     print(f"Expression data shape: {df_exp.shape}")
     
-    runner = GeneExpressionRunner(df_exp)
+    runner = GeneExpressionRunner(df_exp,latent_dim=args.latent_dim,
+        hidden_dims=args.hidden_dim,
+        lr=args.lr,
+        batch_size=args.batch_size)
     cv_losses = runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
 
@@ -33,6 +57,7 @@ def main():
     cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
 
 def each_subtype():
+    args = parse_args()
     # Runs cross-validation for each subtype and saves latent space and cross-validation losses.
     LATENT_DIM=5
     all_cv_losses = []
@@ -41,10 +66,14 @@ def each_subtype():
         print(f"Running for subtype: {subtype}")
 
         # preprocess expression data
-        df_exp = GeneExpPreprocessor(subtypes=[subtype]).get_df()
+        df_exp = GeneExpPreprocessor(subtypes=[subtype],top_N=args.top_N,
+        subset_method=args.subset_method).get_df()
 
         # run cross validation
-        runner = GeneExpressionRunner(df_exp, latent_dim=LATENT_DIM)
+        runner = GeneExpressionRunner(df_exp ,latent_dim=args.latent_dim,
+        hidden_dims=args.hidden_dim,
+        lr=args.lr,
+        batch_size=args.batch_size)
         cv_losses = runner.cross_validate()
         all_cv_losses.append(cv_losses)
         print(f'cv_losses: {cv_losses}')
