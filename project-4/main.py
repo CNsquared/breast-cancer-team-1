@@ -49,6 +49,7 @@ def main():
     cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
 
 def each_subtype():
+    args = parse_args()
     # Runs cross-validation for each subtype and saves latent space and cross-validation losses.
     LATENT_DIM=5
     all_cv_losses = []
