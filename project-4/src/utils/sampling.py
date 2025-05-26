@@ -59,7 +59,7 @@ class VariationalAutoencoder(nn.Module):
 class SamplingRunner:
     def __init__(self, latent_dim=1500, sample_size=1000,
                  hidden_dims=None, beta=1.0,
-                 pretrain_epochs=300, batch_size=32, lr=5e-3,
+                 pretrain_epochs=300, batch_size=64, lr=5e-3,
                  k_range=range(2, 11)):
         self.latent_dim = latent_dim
         self.sample_size = sample_size
