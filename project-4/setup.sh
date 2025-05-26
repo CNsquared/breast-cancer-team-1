@@ -7,23 +7,6 @@
 # Usage: ./setup.sh
 # Make sure you are in the root of the project-3 directory before running this script.
 
-SKIP_CONDA_UPDATE=false
-
-for arg in "$@"; do
-    if [[ "$arg" == "--skip-conda-update" ]]; then
-        SKIP_CONDA_UPDATE=true
-    fi
-done
-
-if [ "$SKIP_CONDA_UPDATE" = false ]; then
-    conda env create -f project4_env.yml
-    conda env update -f project4_env.yml
-fi
-
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate project4_env
-
-cd data/raw
 
 # Download TCGA BRCA expression data from Dropbox
 TCGA_LINK='https://www.dropbox.com/scl/fo/7d37xqur5vlb8jni61b0t/AIULq2j8qwiKujKLUdwZ1fA/Team_1_BRCA?rlkey=pfw7xmb7slnz7d398gzfzpju7&subfolder_nav_tracking=1&st=4c0wzon9&dl=0'

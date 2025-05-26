@@ -3,6 +3,7 @@ from src.utils.preprocess import GeneExpPreprocessor
 from src.models.autoencoder_runner import GeneExpressionRunner
 from src.models.autoencoder import GeneExpressionAutoencoder
 from src.utils.data_loader import load_expression_matrix
+from src.utils.sampling import SamplingRunner
 import numpy as np
 import pandas as pd
 
@@ -13,6 +14,13 @@ def main():
     # preprocess expression data
     df_exp = GeneExpPreprocessor(save=True).get_df()
     # run cross validation
+    
+    print(f"Expression data shape: {df_exp.shape}")
+    
+    runner = SamplingRunner(latent_dim=750, hidden_dims=[600, 700, 800], sample_size=800)
+    df_exp = runner.run(df_exp, verbose=True)
+    print(f"Expression data shape: {df_exp.shape}")
+    
     runner = GeneExpressionRunner(df_exp)
     cv_losses = runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
