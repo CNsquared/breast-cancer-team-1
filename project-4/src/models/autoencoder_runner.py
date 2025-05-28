@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+torch.manual_seed(42)
+torch.use_deterministic_algorithms(True)
 import numpy as np
 import copy
 from typing import List, Tuple
@@ -7,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader, TensorDataset
 from src.models.autoencoder import GeneExpressionAutoencoder
-
+import random
 
 class GeneExpressionRunner:
     def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
@@ -39,6 +41,7 @@ class GeneExpressionRunner:
         patience: int = 10,
         max_epochs: int = 200
     ) -> Tuple[nn.Module, float]:
+
         X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(self.device)
         X_val_tensor = torch.tensor(X_val, dtype=torch.float32).to(self.device)
 

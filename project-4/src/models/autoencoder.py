@@ -1,4 +1,5 @@
 import torch
+torch.use_deterministic_algorithms(True)
 import torch.nn as nn
 from typing import List, Optional
 
