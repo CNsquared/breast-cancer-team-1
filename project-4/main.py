@@ -38,7 +38,7 @@ def main():
     
     print(f"Expression data shape: {df_exp.shape}")
         
-    runner = SamplingRunner(latent_dim=1000, hidden_dims=[625, 750, 875], sample_size=800, lr=5e-3, beta=0.5)
+    runner = SamplingRunner(latent_dim=1000, hidden_dims=[625, 750, 875], sample_size=800, lr=5e-3, beta=0.5, pretrain_epochs=100)
     
     df_exp, sil = runner.run(df_exp, verbose=True)
     print(f"Expression data shape: {df_exp.shape}")
