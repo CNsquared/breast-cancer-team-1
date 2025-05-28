@@ -136,7 +136,46 @@ class SamplingRunner:
         X_aug = np.vstack([X, X_new])
 
         if verbose: print("[INFO] Augmentation complete.")
-        return pd.DataFrame(X_aug, columns=df.columns)
+        return pd.DataFrame(X_aug, columns=df.columns), best_score
+    
+def hyperparam_search(df, latent_list, lr_list, beta_list,
+                      sample_size=800, pretrain_epochs=100,
+                      batch_size=32, k_range=range(2,11), verbose=False):
+    """
+    Grid search over latent_dims, lr, beta. Automatically sets hidden layers
+    as three intermediate sizes between input_dim and latent_dim.
+
+    Returns DataFrame with columns: latent_dim, lr, beta, k, silhouette.
+    """
+    input_dim = df.shape[1]
+    results = []
+    for latent in latent_list:
+        # auto compute hidden_dims: three points between input_dim and latent
+        hidden_dims = [
+            int(input_dim + (latent-input_dim)*(i+1)/4)
+            for i in range(3)
+        ]
+        for lr in lr_list:
+            for beta in beta_list:
+                runner = SamplingRunner(
+                    latent_dim=latent,
+                    sample_size=sample_size,
+                    hidden_dims=hidden_dims,
+                    beta=beta,
+                    pretrain_epochs=pretrain_epochs,
+                    batch_size=batch_size,
+                    lr=lr,
+                    k_range=k_range
+                )
+                _, score = runner.run(df, verbose=verbose)
+                results.append({
+                    'latent_dim': latent,
+                    'hidden_dims': tuple(hidden_dims),
+                    'lr': lr,
+                    'beta': beta,
+                    'silhouette': score
+                })
+    return pd.DataFrame(results)
 
 # Example usage:
 # runner = SamplingRunnerVAE(latent_dim=1500, sample_size=2000)
