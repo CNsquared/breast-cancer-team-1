@@ -12,8 +12,15 @@ from src.models.autoencoder import GeneExpressionAutoencoder
 import random
 
 class GeneExpressionRunner:
-    def __init__(self, input_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
-        self.X: np.ndarray = input_data  # shape (n_samples, n_genes)
+    def __init__(self, train_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16, test_data: np.ndarray = None ):
+        self.X_train: np.ndarray = train_data  # shape (n_samples, n_genes)
+        if test_data is None:
+            print("No test data provided, using training data for testing.")
+            self.X_test: np.ndarray = train_data
+        else:
+            if train_data.shape[1] != test_data.shape[1]:
+                raise ValueError("Training and test data must have the same number of features (genes).")
+            self.X_test = test_data
         self.latent_dim: int = latent_dim
         self.device: str = device if device is not None else (
     "cuda" if torch.cuda.is_available() else (
@@ -27,7 +34,7 @@ class GeneExpressionRunner:
 
     def build_model(self) -> nn.Module:
         model = GeneExpressionAutoencoder(
-            input_dim=self.X.shape[1],
+            input_dim=self.X_train.shape[1],
             latent_dim=self.latent_dim,
             hidden_dims=self.hidden_dims
         ).to(self.device)
@@ -83,9 +90,9 @@ class GeneExpressionRunner:
         return model, best_val_loss
 
     def cross_validate(self, k: int = 5, patience: int = 10, max_epochs: int = 200) -> List[float]:
+        print("Performing cross-validation using training data")
         scaler = StandardScaler()
-        X_scaled: np.ndarray = scaler.fit_transform(self.X)
-
+        X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
         kf = KFold(n_splits=k, shuffle=True, random_state=42)
         fold_losses: List[float] = []
 
@@ -99,11 +106,15 @@ class GeneExpressionRunner:
         return fold_losses
 
     def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200) -> np.ndarray:
+        print("Training autoencoder on all training data and then encoding the test data, returning latent representations")
         scaler = StandardScaler()
-        X_scaled: np.ndarray = scaler.fit_transform(self.X)
+        X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
 
         model = self.build_model()
         model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs)
+
+        # Encode the test data
+        X_scaled: np.ndarray = scaler.transform(self.X_test)
 
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(self.device)
         model.eval()
