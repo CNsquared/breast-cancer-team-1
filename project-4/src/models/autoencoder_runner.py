@@ -10,9 +10,10 @@ from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader, TensorDataset
 from src.models.autoencoder import GeneExpressionAutoencoder
 import random
+import pandas as pd
 
 class GeneExpressionRunner:
-    def __init__(self, train_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
+    def __init__(self, train_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16, dropout_rate: float = 0.2, weight_decay: float = 1e-5) -> None:
         self.X_train: np.ndarray = train_data  # shape (n_samples, n_genes)
         self.latent_dim: int = latent_dim
         self.device: str = device if device is not None else (
@@ -24,12 +25,15 @@ class GeneExpressionRunner:
         self.hidden_dims: List[int] = hidden_dims
         self.lr: float = lr  # learning rate
         self.batch_size: int = batch_size
+        self.dropout_rate: float = dropout_rate  # Dropout rate for the autoencoder
+        self.weight_decay: float = weight_decay  # Weight decay for the optimizer
 
     def build_model(self) -> nn.Module:
         model = GeneExpressionAutoencoder(
             input_dim=self.X_train.shape[1],
             latent_dim=self.latent_dim,
-            hidden_dims=self.hidden_dims
+            hidden_dims=self.hidden_dims,
+            dropout_rate=self.dropout_rate
         ).to(self.device)
         return model
 
@@ -40,7 +44,7 @@ class GeneExpressionRunner:
         X_val: np.ndarray,
         patience: int = 10,
         max_epochs: int = 200,
-        delta: float = 1e-4
+        delta: float = 1e-4,
     ) -> Tuple[nn.Module, float]:
 
         X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(self.device)
@@ -50,8 +54,7 @@ class GeneExpressionRunner:
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
-
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         best_model_state = None
         best_val_loss = float('inf')
         patience_counter = 0
@@ -99,7 +102,7 @@ class GeneExpressionRunner:
 
         return fold_losses
 
-    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4) -> np.ndarray:
+    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4, return_model: bool = False) -> np.ndarray:
         print("Training autoencoder on all training data, returning latent representations")
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
@@ -111,5 +114,25 @@ class GeneExpressionRunner:
         model.eval()
         with torch.no_grad():
             latent: np.ndarray = model.encode(X_tensor).cpu().numpy()
+
+        if return_model:
+            return model, scaler
+        else:
+            return latent
+
+    def trained_model_encode(self, trained_model: nn.Module, data: pd.DataFrame, fit_scaler: StandardScaler) -> np.ndarray:
+        """
+        Encodes the input data using the trained autoencoder model.
+        """
+        X = data.to_numpy()
+        X_scaled = fit_scaler.transform(X)
+        
+        device = next(trained_model.parameters()).device
+
+        X_scaled_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
+
+        trained_model.eval()
+        with torch.no_grad():
+            latent = trained_model.encode(X_scaled_tensor).cpu().numpy()
 
         return latent
