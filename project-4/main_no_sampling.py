@@ -6,6 +6,8 @@ from src.utils.data_loader import load_expression_matrix
 from src.utils.sampling import SamplingRunner
 import numpy as np
 import pandas as pd
+import os
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
 import argparse
 
