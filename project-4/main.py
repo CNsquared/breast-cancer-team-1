@@ -35,29 +35,36 @@ def main():
     all_exp = GeneExpPreprocessor(top_N=args.top_N,
             subset_method=args.subset_method, filter_subtypes=False).get_df()
     
-    basal_only_samples = GeneExpPreprocessor(top_N=args.top_N,subset_method=args.subset_method, filter_subtypes=True).get_df().index
-    basal_only = all_exp.loc[basal_only_samples]
+    basal_samples = GeneExpPreprocessor(top_N=args.top_N,subset_method=args.subset_method, filter_subtypes=True).get_df().index
     # run cross validation
     
     print(f"Expression data shape (train data): {all_exp.shape}")
-    print(f"Expression data shape (basal only): {basal_only.shape}")
         
-    runner = SamplingRunner(latent_dim=1000, hidden_dims=[625, 750, 875], sample_size=800, lr=5e-3, beta=0.5, pretrain_epochs=100)
+    sample_runner = SamplingRunner(latent_dim=1000, hidden_dims=[625, 750, 875], sample_size=800, lr=5e-3, beta=0.5, pretrain_epochs=100)
     
-    all_exp, sil = runner.run(all_exp, verbose=True)
+    sampled_exp, sil = sample_runner.run(all_exp, verbose=True)
     print(f"Expression data shape: {all_exp.shape}")
     
-    runner = GeneExpressionRunner(all_exp,latent_dim=args.latent_dim,
+    ae_runner = GeneExpressionRunner(sampled_exp,latent_dim=args.latent_dim,
         hidden_dims=args.hidden_dim,
         lr=args.lr,
-        batch_size=args.batch_size,
-        test_data=basal_only)
-    cv_losses = runner.cross_validate()
+        batch_size=args.batch_size)
+    cv_losses = ae_runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
 
-    # train on all samples and get latent space
-    latent = runner.train_all_and_encode()
-    df_latent = pd.DataFrame(latent, index=basal_only.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+    # train on synthetic data and then get latent space
+    basal_exp = all_exp.loc[basal_samples]
+    model, scaler = ae_runner.train_all_and_encode(return_model=True)
+    latent = ae_runner.trained_model_encode(model, basal_exp, scaler)
+
+
+    # model, scaler = ae_runner.train_all_and_encode(return_model=True)
+    # X_basal = all_exp.loc[basal_samples].to_numpy()
+    # X_basal_scaled = scaler.transform(X_basal)
+    # X_basal_tensor = torch.tensor(X_basal_scaled, dtype=torch.float32).to(ae_runner.device)
+    # latent_tnbc = latent_all[mask_basal]
+
+    df_latent = pd.DataFrame(latent, index=basal_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
     df_latent.to_csv(f"results/tables/latent_space.csv")
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
