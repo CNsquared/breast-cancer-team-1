@@ -12,15 +12,8 @@ from src.models.autoencoder import GeneExpressionAutoencoder
 import random
 
 class GeneExpressionRunner:
-    def __init__(self, train_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16, test_data: np.ndarray = None ):
+    def __init__(self, train_data: np.ndarray, latent_dim: int = 5, device: str = None, hidden_dims: List[int] = [128, 64], lr: float = 5e-4, batch_size: int = 16):
         self.X_train: np.ndarray = train_data  # shape (n_samples, n_genes)
-        if test_data is None:
-            print("No test data provided, using training data for testing.")
-            self.X_test: np.ndarray = train_data
-        else:
-            if train_data.shape[1] != test_data.shape[1]:
-                raise ValueError("Training and test data must have the same number of features (genes).")
-            self.X_test = test_data
         self.latent_dim: int = latent_dim
         self.device: str = device if device is not None else (
     "cuda" if torch.cuda.is_available() else (
@@ -46,7 +39,8 @@ class GeneExpressionRunner:
         X_train: np.ndarray,
         X_val: np.ndarray,
         patience: int = 10,
-        max_epochs: int = 200
+        max_epochs: int = 200,
+        delta: float = 1e-4
     ) -> Tuple[nn.Module, float]:
 
         X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(self.device)
@@ -75,7 +69,7 @@ class GeneExpressionRunner:
             with torch.no_grad():
                 val_loss = criterion(model(X_val_tensor), X_val_tensor).item()
 
-            if val_loss < best_val_loss - 1e-4:
+            if val_loss < best_val_loss - delta:
                 best_val_loss = val_loss
                 best_model_state = copy.deepcopy(model.state_dict())
                 patience_counter = 0
@@ -89,7 +83,7 @@ class GeneExpressionRunner:
 
         return model, best_val_loss
 
-    def cross_validate(self, k: int = 5, patience: int = 10, max_epochs: int = 200) -> List[float]:
+    def cross_validate(self, k: int = 5, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4) -> List[float]:
         print("Performing cross-validation using training data")
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
@@ -99,22 +93,19 @@ class GeneExpressionRunner:
         for fold, (train_idx, val_idx) in enumerate(kf.split(X_scaled)):
             X_train, X_val = X_scaled[train_idx], X_scaled[val_idx]
             model = self.build_model()
-            _, val_loss = self.train_autoencoder(model, X_train, X_val, patience=patience, max_epochs=max_epochs)
+            _, val_loss = self.train_autoencoder(model, X_train, X_val, patience=patience, max_epochs=max_epochs, delta=delta)
             fold_losses.append(val_loss)
             print(f"Fold {fold + 1}/{k} - Val Loss: {val_loss:.4f}")
 
         return fold_losses
 
-    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200) -> np.ndarray:
-        print("Training autoencoder on all training data and then encoding the test data, returning latent representations")
+    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4) -> np.ndarray:
+        print("Training autoencoder on all training data, returning latent representations")
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
 
         model = self.build_model()
-        model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs)
-
-        # Encode the test data
-        X_scaled: np.ndarray = scaler.transform(self.X_test)
+        model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs, delta=delta)
 
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(self.device)
         model.eval()
