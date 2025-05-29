@@ -46,6 +46,7 @@ def main():
     
     all_exp, sil = runner.run(all_exp, verbose=True)
     print(f"Expression data shape: {all_exp.shape}")
+    gene_names = all_exp.columns
     
     runner = GeneExpressionRunner(all_exp,latent_dim=args.latent_dim,
         hidden_dims=args.hidden_dim,
@@ -56,9 +57,12 @@ def main():
     print(f'cv_losses: {cv_losses}')
 
     # train on all samples and get latent space
-    latent = runner.train_all_and_encode()
+    latent, weights_all = runner.train_all_and_encode()
     df_latent = pd.DataFrame(latent, index=basal_only.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
     df_latent.to_csv(f"results/tables/latent_space.csv")
+    weights_all = pd.DataFrame(weights_all, index=gene_names)
+    weights_all.to_csv(f"results/tables/no_sampling_gene_to_latent_weights.csv")
+    
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
 
@@ -85,8 +89,13 @@ def each_subtype(subtypes= ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal'
 
         # train on all samples and get latent space
         latent = runner.train_all_and_encode()
-        df_latent = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+        df_latent, weights_all  = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
         df_latent.to_csv(f"results/tables/latent_space_{LATENT_DIM}dim_{subtype}.csv")
+
+        weights_all = pd.DataFrame(weights_all, index=gene_names)
+        weights_all.to_csv(f"results/tables/no_sampling_gene_to_latent_weights.csv")
+    
+
     all_cv_losses_df = pd.DataFrame(all_cv_losses, index=subtypes, columns=[f"fold_{i+1}" for i in range(len(all_cv_losses[0]))])
     all_cv_losses_df.to_csv(f"results/tables/cv_losses_{LATENT_DIM}dim_all_subtypes.csv", index=True)
 

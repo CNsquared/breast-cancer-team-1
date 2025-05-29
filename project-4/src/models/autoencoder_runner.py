@@ -100,7 +100,7 @@ class GeneExpressionRunner:
         return fold_losses
 
     def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4) -> np.ndarray:
-        print("Training autoencoder on all training data, returning latent representations")
+        print("Training autoencoder on all training data, returning latent representations and gene weights")
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
 
@@ -112,4 +112,19 @@ class GeneExpressionRunner:
         with torch.no_grad():
             latent: np.ndarray = model.encode(X_tensor).cpu().numpy()
 
-        return latent
+        # Get the linear layers only (skip ReLU)
+        linear_layers = [layer for layer in model.encoder if isinstance(layer, nn.Linear)]
+
+        # Extract weights (each of shape: out_features x in_features)
+        weights = [layer.weight.data.cpu().numpy() for layer in linear_layers]
+
+        # Multiply them in reverse order (to get gene → latent map)
+        W_total = weights[-1]
+        for W in reversed(weights[:-1]):
+            W_total = W_total @ W  # matrix multiplication
+
+        # W_total now has shape (latent_dim, input_dim)
+        # Transpose to (input_dim, latent_dim) for easier interpretation
+        W_gene_to_latent = W_total.T 
+
+        return latent, W_gene_to_latent

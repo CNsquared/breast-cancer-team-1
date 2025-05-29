@@ -12,7 +12,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser()  
     
-    parser.add_argument('--latent_dim', type=int, default=5, help='Number of latent features')
+    parser.add_argument('--latent_dim', type=int, default=15, help='Number of latent features')
     parser.add_argument('--hidden_dim', type=int, nargs='+', default=[128, 64],
                         help='Hidden dimensions in encoder, e.g., --hidden_dim 128 64')
     parser.add_argument('--lr', type=float, default=5e-4, help='Learning rate')
@@ -37,6 +37,7 @@ def main():
     # run cross validation
     
     print(f"Expression data shape (train data): {all_exp.shape}")
+    gene_names = all_exp.columns
     
     runner = GeneExpressionRunner(all_exp,latent_dim=args.latent_dim,
         hidden_dims=args.hidden_dim,
@@ -47,11 +48,15 @@ def main():
 
     # train on all samples and get latent space
     mask_basal = all_exp.index.isin(basal_samples)
-    latent_all = runner.train_all_and_encode()
+    latent_all, weights_all = runner.train_all_and_encode()
     latent_tnbc = latent_all[mask_basal]
 
     df_latent = pd.DataFrame(latent_tnbc, index=all_exp[mask_basal].index, columns=[f"latent_{i}" for i in range(latent_tnbc.shape[1])])
     df_latent.to_csv(f"results/tables/no_sampling_latent_space.csv")
+
+    weights_all = pd.DataFrame(weights_all, index=gene_names)
+    weights_all.to_csv(f"results/tables/no_sampling_gene_to_latent_weights.csv")
+    
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/no_sampling_cv_losses.csv", index=False, header=False)
 
