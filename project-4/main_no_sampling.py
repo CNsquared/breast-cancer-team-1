@@ -9,8 +9,6 @@ import pandas as pd
 
 import argparse
 
-RUN_EACH_SUBTYPE = False
-
 def parse_args():
     parser = argparse.ArgumentParser()  
     
@@ -33,24 +31,26 @@ def main():
     all_exp = GeneExpPreprocessor(top_N=args.top_N,
         subset_method=args.subset_method, filter_subtypes=False).get_df()
     
-    basal_only_samples = GeneExpPreprocessor(top_N=args.top_N,subset_method=args.subset_method, filter_subtypes=True).get_df().index
-    basal_only = all_exp.loc[basal_only_samples]
+    basal_samples = GeneExpPreprocessor(top_N=args.top_N,
+        subset_method=args.subset_method, filter_subtypes=True, subtypes=['BRCA_Basal']).get_df().index
+    
     # run cross validation
     
     print(f"Expression data shape (train data): {all_exp.shape}")
-    print(f"Expression data shape (basal only): {basal_only.shape}")
     
     runner = GeneExpressionRunner(all_exp,latent_dim=args.latent_dim,
         hidden_dims=args.hidden_dim,
         lr=args.lr,
-        batch_size=args.batch_size,
-        test_data=basal_only)
+        batch_size=args.batch_size)
     cv_losses = runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
 
     # train on all samples and get latent space
-    latent = runner.train_all_and_encode()
-    df_latent = pd.DataFrame(latent, index=basal_only.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+    mask_basal = all_exp.index.isin(basal_samples)
+    latent_all = runner.train_all_and_encode()
+    latent_tnbc = latent_all[mask_basal]
+
+    df_latent = pd.DataFrame(latent_tnbc, index=all_exp[mask_basal].index, columns=[f"latent_{i}" for i in range(latent_tnbc.shape[1])])
     df_latent.to_csv(f"results/tables/no_sampling_latent_space.csv")
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/no_sampling_cv_losses.csv", index=False, header=False)
