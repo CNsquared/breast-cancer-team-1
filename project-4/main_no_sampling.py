@@ -49,7 +49,7 @@ def main():
 
     # train on all samples and get latent space
     mask_basal = all_exp.index.isin(basal_samples)
-    model,_,latent_all = runner.train_all_and_encode()
+    model,_,latent_all = runner.train_all_and_encode(detail=True)
     latent_tnbc = latent_all[mask_basal]
     layer = runner.get_weights(model)
 
