@@ -136,3 +136,9 @@ class GeneExpressionRunner:
             latent = trained_model.encode(X_scaled_tensor).cpu().numpy()
 
         return latent
+        
+    def get_weights(self, trained_model : nn.Module):
+        layer = {}
+        for name, param in trained_model.named_parameters():
+            layer[name] = param
+        return layer
