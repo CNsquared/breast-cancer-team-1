@@ -49,8 +49,9 @@ def main():
 
     # train on all samples and get latent space
     mask_basal = all_exp.index.isin(basal_samples)
-    latent_all = runner.train_all_and_encode()
+    model,_,latent_all = runner.train_all_and_encode()
     latent_tnbc = latent_all[mask_basal]
+    layer = runner.get_weights(model)
 
     df_latent = pd.DataFrame(latent_tnbc, index=all_exp[mask_basal].index, columns=[f"latent_{i}" for i in range(latent_tnbc.shape[1])])
     df_latent.to_csv(f"results/tables/no_sampling_latent_space.csv")
