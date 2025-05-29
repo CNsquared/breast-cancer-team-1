@@ -3,13 +3,13 @@ from src.utils.preprocess import GeneExpPreprocessor
 from src.models.autoencoder_runner import GeneExpressionRunner
 from src.models.autoencoder import GeneExpressionAutoencoder
 from src.utils.data_loader import load_expression_matrix
-from src.utils.sampling import SamplingRunner
+from src.utils.sampling import SamplingRunner, hyperparam_search
 import numpy as np
 import pandas as pd
 
 import argparse
 
-RUN_EACH_SUBTYPE = True
+RUN_EACH_SUBTYPE = False
 
 def parse_args():
     parser = argparse.ArgumentParser()  
@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('--max_epochs', type=int, default=200, help='Maximum epochs')
     parser.add_argument('--patience', type=int, default=10, help='Number of epocs where model training saturated')
 
-    parser.add_argument('--top_N', type=int, default=500, help="Top 'n' genes used for analysis")
+    parser.add_argument('--top_N', type=int, default=250, help="Top 'n' genes used for analysis")
     parser.add_argument('--subset_method', type=str, default='dndscv', help="Method to select top 'n' genes")
 
     return parser.parse_args()
@@ -32,36 +32,41 @@ def main():
     
     # Trains autoencoder on all samples of specified subtype and saves latent space and cross-validation losses.
     # preprocess expression data
-    df_exp = GeneExpPreprocessor(save=True,top_N=args.top_N,
-        subset_method=args.subset_method).get_df()
+    all_exp = GeneExpPreprocessor(top_N=args.top_N,
+            subset_method=args.subset_method, filter_subtypes=False).get_df()
+    
+    basal_only_samples = GeneExpPreprocessor(top_N=args.top_N,subset_method=args.subset_method, filter_subtypes=True).get_df().index
+    basal_only = all_exp.loc[basal_only_samples]
     # run cross validation
     
-    print(f"Expression data shape: {df_exp.shape}")
+    print(f"Expression data shape (train data): {all_exp.shape}")
+    print(f"Expression data shape (basal only): {basal_only.shape}")
+        
+    runner = SamplingRunner(latent_dim=1000, hidden_dims=[625, 750, 875], sample_size=800, lr=5e-3, beta=0.5, pretrain_epochs=100)
     
-    runner = SamplingRunner(latent_dim=750, hidden_dims=[600, 700, 800], sample_size=800)
-    df_exp = runner.run(df_exp, verbose=True)
-    print(f"Expression data shape: {df_exp.shape}")
+    all_exp, sil = runner.run(all_exp, verbose=True)
+    print(f"Expression data shape: {all_exp.shape}")
     
-    runner = GeneExpressionRunner(df_exp,latent_dim=args.latent_dim,
+    runner = GeneExpressionRunner(all_exp,latent_dim=args.latent_dim,
         hidden_dims=args.hidden_dim,
         lr=args.lr,
-        batch_size=args.batch_size)
+        batch_size=args.batch_size,
+        test_data=basal_only)
     cv_losses = runner.cross_validate()
     print(f'cv_losses: {cv_losses}')
 
     # train on all samples and get latent space
     latent = runner.train_all_and_encode()
-    df_latent = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+    df_latent = pd.DataFrame(latent, index=basal_only.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
     df_latent.to_csv(f"results/tables/latent_space.csv")
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/cv_losses.csv", index=False, header=False)
 
-def each_subtype():
+def each_subtype(subtypes= ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']):
     args = parse_args()
     # Runs cross-validation for each subtype and saves latent space and cross-validation losses.
     LATENT_DIM=5
     all_cv_losses = []
-    subtypes = ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']
     for subtype in subtypes:
         print(f"Running for subtype: {subtype}")
 
@@ -88,4 +93,9 @@ def each_subtype():
 if __name__ == "__main__":
     main()
     if RUN_EACH_SUBTYPE:
-        each_subtype()
+        each_subtype(subtypes=['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal'])
+    else:
+        print("Skipping subtype-specific runs. Set RUN_EACH_SUBTYPE to True to enable. Running Basal subtype only.")
+        each_subtype(subtypes=['BRCA_Basal'])
+        
+        
