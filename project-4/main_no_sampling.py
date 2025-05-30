@@ -33,7 +33,7 @@ trainingParams = {
 def main():
 
     # get expression data
-    all_exp = GeneExpPreprocessor(**geneExpParams, filter_subtypes=False).get_df()
+    all_exp = GeneExpPreprocessor(**geneExpParams, filter_subtypes=False, save=True).get_df()
     basal_samples = GeneExpPreprocessor(**geneExpParams).get_df().index
     basal_exp = all_exp.loc[basal_samples]
     print(f"Expression data shape (train data): {all_exp.shape}")
