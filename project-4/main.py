@@ -91,11 +91,7 @@ def each_subtype(subtypes= ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal'
         latent = runner.train_all_and_encode()
         df_latent, weights_all  = pd.DataFrame(latent, index=df_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
         df_latent.to_csv(f"results/tables/latent_space_{LATENT_DIM}dim_{subtype}.csv")
-
-        weights_all = pd.DataFrame(weights_all, index=gene_names)
-        weights_all.to_csv(f"results/tables/no_sampling_gene_to_latent_weights.csv")
     
-
     all_cv_losses_df = pd.DataFrame(all_cv_losses, index=subtypes, columns=[f"fold_{i+1}" for i in range(len(all_cv_losses[0]))])
     all_cv_losses_df.to_csv(f"results/tables/cv_losses_{LATENT_DIM}dim_all_subtypes.csv", index=True)
 
