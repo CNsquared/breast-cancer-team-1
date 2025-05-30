@@ -66,12 +66,12 @@ def main():
     print("Saving results...")
 
     os.makedirs("results/models", exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.datetime.now().strftime("%d_%H-%M")
     str_AE_params = "_".join([
         f"{v:.0e}" if isinstance(v, float) else str(v)
         for v in autoEncoderParams.values()
     ])
-    torch.save(model.state_dict(), f"results/models/no_sampling_autoencoder_{timestamp}_{str_AE_params}.pth")  # save model state
+    torch.save(model.state_dict(), f"results/models/no_sampling_autoencoder_{timestamp}_model_{str_AE_params}.pth")  # save model state
 
     weights_all = pd.DataFrame(weights_all, index=all_exp.columns)
     weights_all.to_csv(f"results/tables/no_sampling_gene_to_latent_weights.csv")
