@@ -29,13 +29,10 @@ def main():
     args = parse_args()
 
     all_exp = GeneExpPreprocessor(top_N=args.top_N,
-        subset_method=args.subset_method, filter_subtypes=False).get_df()
+            subset_method=args.subset_method, filter_subtypes=False).get_df()
     
-    basal_samples = GeneExpPreprocessor(top_N=args.top_N,
-        subset_method=args.subset_method, filter_subtypes=True, subtypes=['BRCA_Basal']).get_df().index
-    
-    # run cross validation
-    
+    basal_samples = GeneExpPreprocessor(top_N=args.top_N,subset_method=args.subset_method, filter_subtypes=True).get_df().index
+
     print(f"Expression data shape (train data): {all_exp.shape}")
     gene_names = all_exp.columns
     
@@ -47,11 +44,18 @@ def main():
     print(f'cv_losses: {cv_losses}')
 
     # train on all samples and get latent space
-    mask_basal = all_exp.index.isin(basal_samples)
-    latent_all, weights_all = runner.train_all_and_encode()
-    latent_tnbc = latent_all[mask_basal]
+    basal_exp = all_exp.loc[basal_samples]
+    model, scaler, weights_all = runner.train_all_and_encode(return_model=True)
+    latent = runner.trained_model_encode(model, basal_exp, scaler)
 
-    df_latent = pd.DataFrame(latent_tnbc, index=all_exp[mask_basal].index, columns=[f"latent_{i}" for i in range(latent_tnbc.shape[1])])
+    # write out latent space, weights, cv losses, and pretrained model
+
+    print("Saving results...")
+
+    # save model
+
+
+    df_latent = pd.DataFrame(latent, index=basal_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
     df_latent.to_csv(f"results/tables/no_sampling_latent_space.csv")
 
     weights_all = pd.DataFrame(weights_all, index=gene_names)
