@@ -140,8 +140,8 @@ class GeneExpressionRunner:
         """
         Encodes the input data using the trained autoencoder model.
         """
-        X = data.to_numpy()
-        X_scaled = fit_scaler.transform(X)
+
+        X_scaled = fit_scaler.transform(data)
         
         device = next(trained_model.parameters()).device
 
