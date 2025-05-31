@@ -73,4 +73,16 @@ else
     gdown "https://drive.google.com/uc?id=${DNDS_GENES_ID}"
 fi
 
+cd ..
+cd processed
+
+# download mutations
+MUTATIONS_ID='1kOd4WettgVstrMvGYYyGJBlnF0z2RvzX'
+if [ -f "TCGA.BRCA.mutations.qc1.txt" ]; then
+    echo "TCGA.BRCA.mutations.qc1.txt already exists. Skipping download."
+else
+    echo "Downloading TCGA.BRCA.mutations.qc1.txt"
+    gdown "https://drive.google.com/uc?id=${MUTATIONS_ID}"
+fi
+
 echo "Setup complete."

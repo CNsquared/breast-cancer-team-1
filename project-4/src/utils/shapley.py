@@ -22,7 +22,7 @@ def shapley_plot(runner, model):
 
   shap.summary_plot(shap_values, X_test, plot_type="bar", feature_names = col_name, show = False)
   plt.title("SHAP Feature Importance")
-  plt.savefig("results/figures/shap_bar_plot_summary_{timestamp}.png", bbox_inches='tight', dpi=300)
+  plt.savefig(f"results/figures/shap_bar_plot_summary_{timestamp}.png", bbox_inches='tight', dpi=300)
   plt.clf()
 
   for i in range(shap_values.shape[-1]):
