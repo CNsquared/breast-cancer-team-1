@@ -102,14 +102,17 @@ class GeneExpressionRunner:
 
         return fold_losses
 
-    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4, return_model: bool = False) -> np.ndarray:
+    def train_all_and_encode(self, patience: int = 10, max_epochs: int = 200, delta: float = 1e-4, return_model: bool = False, retrain_model: bool = True, model_state_path='results/models/no_sampling_autoencoder_2025-05-29_23-31-49_5_[128, 64]_5e-04_2e-01_1e-05.pth') -> np.ndarray:
         print("Training autoencoder on all training data, returning latent representations and gene weights")
         scaler = StandardScaler()
         X_scaled: np.ndarray = scaler.fit_transform(self.X_train)
 
         model = self.build_model()
-        model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs, delta=delta)
-
+        if not retrain_model:
+            model.load_state_dict(torch.load(model_state_path))
+        else:
+            model, _ = self.train_autoencoder(model, X_scaled, X_scaled, patience=patience, max_epochs=max_epochs, delta=delta)
+        
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(self.device)
         model.eval()
         with torch.no_grad():

@@ -29,6 +29,7 @@ trainingParams = {
     'patience': 10,            # Number of epochs where model training saturated
     'max_epochs': 200,         # Maximum epochs
     'delta': 1e-4,            # Minimum change in validation loss to consider improvement
+    'retrain_model': False
 }
 
 def main():
