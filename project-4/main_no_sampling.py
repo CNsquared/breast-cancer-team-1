@@ -4,6 +4,7 @@ from src.models.autoencoder_runner import GeneExpressionRunner
 from src.models.autoencoder import GeneExpressionAutoencoder
 from src.utils.data_loader import load_expression_matrix
 from src.utils.sampling import SamplingRunner
+from src.utils.shapley import shapley_plot
 import numpy as np
 import pandas as pd
 import torch
@@ -62,6 +63,9 @@ def main():
         df_latent.to_csv(f"results/tables/latent_space_{autoEncoderParams['latent_dim']}dim_{subtype}.csv")
         print("Done extracting latent space for subtype:", subtype)
 
+    print("Plotting Shapley Values...")
+    shapley_plot(runner, model)
+
     # write out latent space, weights, cv losses, and pretrained model
     print("Saving results...")
 
@@ -78,6 +82,7 @@ def main():
     
     cv_losses_df = pd.DataFrame(cv_losses, index=[f"fold_{i+1}" for i in range(len(cv_losses))])
     cv_losses_df.to_csv(f"results/tables/no_sampling_cv_losses.csv", index=False, header=False)
+
     print("Job completed successfully!")
 
 if __name__ == "__main__":
