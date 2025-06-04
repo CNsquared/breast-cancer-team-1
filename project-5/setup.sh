@@ -10,6 +10,8 @@
 
 # Download TCGA BRCA expression data from Dropbox
 
+mkdir data
+mkdir data/raw
 cd data/raw
 
 TCGA_LINK='https://www.dropbox.com/scl/fo/7d37xqur5vlb8jni61b0t/AIULq2j8qwiKujKLUdwZ1fA/Team_1_BRCA?rlkey=pfw7xmb7slnz7d398gzfzpju7&subfolder_nav_tracking=1&st=4c0wzon9&dl=0'
