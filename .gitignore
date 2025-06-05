@@ -8,3 +8,4 @@ __pycache__/
 *.pkl
 *.png
 *.pth
+*.log
