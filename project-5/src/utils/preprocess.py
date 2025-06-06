@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from src.utils.tpm_normalization import parse_gencode_fasta, longest_CDS, log1p_TPM_normalize
+#from src.utils.tpm_normalization import parse_gencode_fasta, longest_CDS, log1p_TPM_normalize
 from sklearn.preprocessing import StandardScaler
 
 
@@ -110,3 +110,31 @@ class GeneExpPreprocessor:
 
     def get_df(self):
         return self.df_exp
+    
+
+def generateFeatureSpace():
+    metadata = pd.read_csv('data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv', sep='\t')
+
+    # subset to female
+    metadata = metadata[metadata['Sex'] == 'Female']
+
+    # subset to stages
+    metadata = metadata[metadata['Neoplasm Disease Stage American Joint Committee on Cancer Code'].notna()]
+    metadata = metadata[metadata['Neoplasm Disease Stage American Joint Committee on Cancer Code'] != 'STAGE X']
+    metadata['Stage'] = metadata['Neoplasm Disease Stage American Joint Committee on Cancer Code']
+
+    # has a PAM50 subtype
+    metadata = metadata[metadata['Subtype'].notna()]
+
+    # adjust ethnicity
+    metadata['Race Category'] = metadata['Race Category'].apply(lambda x: 'White' if x == 'White' else 'Non-white')
+
+    # add outcome 
+    metadata['PFI_over60mo'] = metadata.apply(lambda row: 'No' if (row['Progression Free Status'] == '1:PROGRESSION') and (row['Progress Free Survival (Months)'] < 60) else 'Yes', axis=1)
+
+    # divide age by 10
+    metadata['Diagnosis Age'] = metadata['Diagnosis Age']/10
+
+    featureSpace_metadata = metadata[['Patient ID', 'Sample ID', 'Diagnosis Age', 'Race Category', 'Tumor Type', 'Subtype', 'PFI_over60mo']]
+
+    return featureSpace_metadata
