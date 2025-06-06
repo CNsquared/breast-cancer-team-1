@@ -50,6 +50,11 @@ def main():
     # train on all samples and get model, scaler
     model, scaler, weights_all = runner.train_all_and_encode(**trainingParams, return_model=True)
 
+    # get latent space for all samples
+    latent = runner.trained_model_encode(model, all_exp, scaler)
+    df_latent = pd.DataFrame(latent, index=all_exp.index, columns=[f"latent_{i}" for i in range(latent.shape[1])])
+    df_latent.to_csv(f"results/tables/latent_space_{autoEncoderParams['latent_dim']}dim_all_samples.csv")
+
     # use model and scaler to encode subtypes
     print("Running subtype-specific latent_space extraction...")
     subtypes= ['BRCA_LumA', 'BRCA_Her2', 'BRCA_LumB', 'BRCA_Normal', 'BRCA_Basal']
