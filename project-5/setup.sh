@@ -96,4 +96,45 @@ else
     gdown "https://drive.google.com/uc?id=${DNDS_GENES_ID}"
 fi
 
-echo "Setup complete."
+
+LATENT_DIMS_BASAL_ID='1EhjERXK4LH3GWBWn3sVXD_u0Tz0Buwg4'
+LATENT_DIMS_NORMAL_ID='1PD15G4p-4yzdcICmXrpUadgq1IYE5A2e'
+LATENT_DIMS_LUMB_ID='1JfKM0I6AAchjT9tW9x-fCYn9o82UXeR7'
+LATENT_DIMS_HER2_ID='1vV5v09Xe_fMMltzN2-YoElk5LO7y5BX1'
+LATENT_DIMS_LUMA_ID='1mAqHTgcbtT5XbEsHoEHEfzktiInSI6aA'
+
+
+if [ -f "latent_space_5dim_BRCA_Basal.csv" ]; then
+    echo "latent_space_5dim_BRCA_Basal.csv already exists. Skipping download."
+else
+    echo "Downloading latent dims Basal"
+    gdown "https://drive.google.com/uc?export=download&id=${LATENT_DIMS_BASAL_ID}"
+fi
+# download latent dims
+if [ -f "latent_space_5dim_BRCA_Normal.csv" ]; then
+    echo "latent_space_5dim_BRCA_Normal.csv already exists. Skipping download."
+else
+    echo "Downloading latent dims Normal"
+    gdown "https://drive.google.com/uc?export=download&id=${LATENT_DIMS_NORMAL_ID}"
+fi
+
+if [ -f "latent_space_5dim_BRCA_LUMB.csv" ]; then
+    echo "latent_space_5dim_BRCA_LUMB.csv already exists. Skipping download."
+else
+    echo "Downloading latent dims LumB"
+    gdown "https://drive.google.com/uc?export=download&id=${LATENT_DIMS_LUMB_ID}"
+fi
+
+if [ -f "latent_space_5dim_BRCA_LUMA.csv" ]; then
+    echo "latent_space_5dim_BRCA_LUMA.csv already exists. Skipping download."
+else
+    echo "Downloading latent dims LumA"
+    gdown "https://drive.google.com/uc?export=download&id=${LATENT_DIMS_LUMA_ID}"
+fi
+
+if [ -f "latent_space_5dim_BRCA_HER2.csv" ]; then
+    echo "latent_space_5dim_BRCA_HER2.csv already exists. Skipping download."
+else
+    echo "Downloading latent dims LumA"
+    gdown "https://drive.google.com/uc?export=download&id=${LATENT_DIMS_HER2_ID}"
+fi     

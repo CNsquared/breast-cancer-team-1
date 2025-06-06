@@ -113,6 +113,7 @@ class GeneExpPreprocessor:
     
 
 def generateFeatureSpace():
+    print('generating initial feature space....')
     metadata = pd.read_csv('data/raw/brca_tcga_pan_can_atlas_2018_clinical_data_PAM50_subype_and_progression_free_survival.tsv', sep='\t')
 
     # subset to female
@@ -168,6 +169,26 @@ def generateFeatureSpace():
     print(f"Number of rows with all NA in mutation columns (before): {initial_na_rows}")
     print(f"Number of rows with all NA in mutation columns (after): {final_na_rows}")
         
-    print(metadata_with_mutation_feature_space)
 
-    return metadata_with_mutation_feature_space
+    print("Adding latent dims to feature space...")
+    
+    latent_dims = pd.DataFrame()
+    filenames = ['data/raw/latent_space_5dim_BRCA_Normal.csv',
+                 'data/raw/latent_space_5dim_BRCA_Her2.csv',
+                 'data/raw/latent_space_5dim_BRCA_LumA.csv',
+                 'data/raw/latent_space_5dim_BRCA_LumB.csv',
+                 'data/raw/latent_space_5dim_BRCA_Basal.csv']
+
+    for f in filenames:
+        print(f)
+        new_df = pd.read_csv(f)
+        latent_dims = pd.concat([latent_dims, new_df])
+    
+    featureMatrix_mutations_latent_dims = pd.merge(
+        metadata_with_mutation_feature_space, latent_dims,
+        left_on=['Patient ID'],
+        right_on=['patient_id'],
+        how='left'
+    )
+
+    return featureMatrix_mutations_latent_dims
