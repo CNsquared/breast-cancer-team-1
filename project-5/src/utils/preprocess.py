@@ -137,4 +137,37 @@ def generateFeatureSpace():
 
     featureSpace_metadata = metadata[['Patient ID', 'Sample ID', 'Diagnosis Age', 'Race Category', 'Tumor Type', 'Subtype', 'PFI_over60mo']]
 
-    return featureSpace_metadata
+
+    mutations = pd.read_csv('/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-5/data/raw/TCGA.BRCA.mutations.txt', sep="\t")
+
+    # Filter for nonsynoymous pass SBS and indels that cause in top 10 IntOGen breast cancer drivers. They end up being Missense_Mutation, Frame_Shift_Del, Nonsense_Mutation, Frame_Shift_Ins, Splice_Site, In_Frame_Del
+    pass_sbs_indels = mutations[mutations["FILTER"] == "PASS"]
+    pass_sbs_indels_in_top10_intogen_breast_drivers = pass_sbs_indels[pass_sbs_indels["Hugo_Symbol"].isin(["TP53", "PIK3CA", "GATA3", "KMT2C", "CDH1", "MAP3K1", "ESR1", "PTEN", "AKT1", "ARID1A"])]
+    pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers = pass_sbs_indels_in_top10_intogen_breast_drivers[~pass_sbs_indels_in_top10_intogen_breast_drivers["Variant_Classification"].isin(["Silent", "Intron", "3'Flank", "3'UTR", "5'UTR"])]
+    pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers_feature_space = pd.crosstab(
+        index=pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers['patient_id'],
+        columns=pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers['Hugo_Symbol']
+    )
+        # The highest mutated primary samples have only 11 nonsyn sbs and indels in these top 10 genes
+    # pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers_feature_space.sum(axis=1).nlargest(5)
+
+    metadata_with_mutation_feature_space = pd.merge(
+        featureSpace_metadata,
+        pass_nonsyn_sbs_indels_in_top10_intogen_breast_drivers_feature_space,
+        
+        left_on="Patient ID",
+        right_index=True,
+        how="left"
+    )
+    
+    # Fill NA values in any of these 10 mutation columns with 0, so patients with no nonsyn mutations in these genes are represented as 0
+    gene_columns = ['AKT1', 'ARID1A', 'CDH1', 'ESR1', 'GATA3', 'KMT2C', 'MAP3K1', 'PIK3CA', 'PTEN', 'TP53']
+    initial_na_rows = metadata_with_mutation_feature_space[gene_columns].isna().all(axis=1).sum()
+    metadata_with_mutation_feature_space[gene_columns] = metadata_with_mutation_feature_space[gene_columns].fillna(0)
+    final_na_rows = metadata_with_mutation_feature_space[gene_columns].isna().all(axis=1).sum()
+    print(f"Number of rows with all NA in mutation columns (before): {initial_na_rows}")
+    print(f"Number of rows with all NA in mutation columns (after): {final_na_rows}")
+        
+    print(metadata_with_mutation_feature_space)
+
+    return metadata_with_mutation_feature_space
