@@ -85,7 +85,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
 
     return results
 
-def plot_roc_curves(results, ax=None, title="ROC Curve Comparison (k=17 genes)", figsize=(6,4)):
+def plot_roc_curves(results, ax=None, title="ROC Curve Comparison", figsize=(6,4)):
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -108,7 +108,7 @@ def plot_roc_curves(results, ax=None, title="ROC Curve Comparison (k=17 genes)",
     ax.grid(True)
     return ax
 
-def plot_precision_recall_curves(results, ax=None, title="Precision-Recall Curve Comparison (k=17 genes)", figsize=(6, 4)):
+def plot_precision_recall_curves(results, ax=None, title="Precision-Recall Curve Comparison", figsize=(6, 4)):
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
