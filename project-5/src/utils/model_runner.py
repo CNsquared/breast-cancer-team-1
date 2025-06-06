@@ -1,21 +1,16 @@
 import pandas as pd
 import numpy as np
-import seaborn as sns
 from matplotlib import pyplot as plt
 
-
-from sklearn.linear_model import Ridge
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.svm import SVR
-from xgboost import XGBRegressor
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-from sklearn.metrics import precision_recall_curve, average_precision_score, roc_curve, auc
+from sklearn.metrics import precision_recall_curve, accuracy_score, roc_auc_score, f1_score, average_precision_score, roc_curve, auc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import KFold
-from sklearn.dummy import DummyRegressor
-from sklearn.metrics import median_absolute_error, explained_variance_score
-from scipy.stats import spearmanr
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.linear_model import LogisticRegression
+
 
 
 def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, **kwargs):
@@ -31,14 +26,13 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     - filter_data: callable, function to filter features based on training data, should take (X_train, y_train) and return (X_filtered, feature_names)
     """
 
-    y_array = np.asarray(y, dtype=float)
+    y_array = np.asarray(y, dtype=int)
     if models is None:
         models = {
-            #'Dummy (mean)': DummyRegressor(strategy='mean'),
-            'Ridge Regression': make_pipeline(StandardScaler(), Ridge()),
-            'Random Forest': RandomForestRegressor(),
-            'SVR': make_pipeline(StandardScaler(), SVR()),
-            'XGBoost': XGBRegressor()
+            'Logistic Regression': make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, random_state=random_state)),
+            'Random Forest': RandomForestClassifier(n_estimators=100, random_state=random_state),
+            'SVM': make_pipeline(StandardScaler(), SVC(kernel='rbf', probability=True, random_state=random_state)),
+            'XGBoost': XGBClassifier(eval_metric='logloss', random_state=random_state)
         }
 
     if filter_data is None:
@@ -46,11 +40,11 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             return X, X.columns.tolist()
         
     results = {}
-    kf = KFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
 
     for name, model in models.items():
-        r2_scores, mses, maes, yt, yp, med_ae_scores, ev_scores, spearman_scores = [], [], [], [], [], [], [], []
-        for train_idx, test_idx in kf.split(X, y_array):
+        acc_scores, auc_scores, f1_scores, f1_scores_weighted, yt, yp, ypr = [], [], [], [], [], [], []
+        for train_idx, test_idx in skf.split(X, y_array):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
 
@@ -58,82 +52,84 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             X_train_filtered, features = filter_data(X_train, y_train, **kwargs)
             X_test_filtered = X_test.loc[:, features]
 
-            # Scale y within the fold
-            y_scaler = StandardScaler()
-            y_train_scaled = y_scaler.fit_transform(y_train.reshape(-1, 1)).ravel()
-
-            # Fit model on scaled y
-            model.fit(X_train_filtered, y_train_scaled)
+            # Fit model on y
+            model.fit(X_train_filtered, y_train)
 
             # Predict and inverse-transform to original scale
-            y_pred_scaled = model.predict(X_test_filtered)
-            y_pred = y_scaler.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+            y_pred = model.predict(X_test_filtered)
+            y_prob = model.predict_proba(X_test_filtered)[:, 1] if hasattr(model, "predict_proba") else y_pred
+
+            acc_scores.append(accuracy_score(y_test, y_pred))
+            auc_scores.append(roc_auc_score(y_test, y_prob))
+            f1_scores.append(f1_score(y_test, y_pred))
+            f1_scores_weighted.append(f1_score(y_test, y_pred, average='weighted'))
 
             # Evaluate using original y_test
-            r2_scores.append(r2_score(y_test, y_pred))
-            mses.append(mean_squared_error(y_test, y_pred))
-            maes.append(mean_absolute_error(y_test, y_pred))
-            med_ae_scores.append(median_absolute_error(y_test, y_pred))
-            ev_scores.append(explained_variance_score(y_test, y_pred))
-            spearman_scores.append(spearmanr(y_test, y_pred).correlation)
             yt.append(y_test)
             yp.append(y_pred)
+            ypr.append(y_prob)
 
         yt = np.concatenate(yt)
         yp = np.concatenate(yp)
+        ypr = np.concatenate(ypr)
         results[name] = {
-            'R2': {'mean': np.mean(r2_scores), 'std': np.std(r2_scores), 'scores': r2_scores, 'global': r2_score(yt, yp)},
-            'MSE': {'mean': np.mean(mses), 'std': np.std(mses), 'scores': mses, 'global':mean_squared_error(yt, yp)},
-            'MAE': {'mean': np.mean(maes), 'std': np.std(maes), 'scores': maes, 'global': mean_absolute_error(yt, yp)},
-            'MedianAE': {'mean': np.mean(med_ae_scores), 'std': np.std(med_ae_scores), 'scores': med_ae_scores, 'global': median_absolute_error(yt, yp)},
-            'ExplainedVariance': {'mean': np.mean(ev_scores), 'std': np.std(ev_scores), 'scores': ev_scores, 'global': explained_variance_score(yt, yp)},
-            'Spearman': {'mean': np.mean(spearman_scores), 'std': np.std(spearman_scores), 'scores': spearman_scores, 'global': spearmanr(yt, yp).correlation},
+            'Accuracy': {'mean': np.mean(acc_scores), 'std': np.std(acc_scores), 'scores': acc_scores, 'global': accuracy_score(yt, yp)},
+            'ROC AUC': {'mean': np.mean(auc_scores), 'std': np.std(auc_scores), 'scores': auc_scores, 'global': roc_auc_score(yt, ypr)},
+            'F1 Score': {'mean': np.mean(f1_scores), 'std': np.std(f1_scores), 'scores': f1_scores, 'global': f1_score(yt, yp)},
+            'F1 Score Weighted': {'mean': np.mean(f1_scores_weighted), 'std': np.std(f1_scores_weighted), 'scores': f1_scores_weighted, 'global': f1_score(yt, yp, average='weighted')},
             'features': features,
             'y_true': yt,
-            'y_pred': yp
+            'y_pred': yp,
+            'y_prob': ypr
         }
 
     return results
 
-def plot_predicted_vs_true(results, ax=None, title="Predicted vs. True"):
+def plot_roc_curves(results, ax=None, title="ROC Curve Comparison (k=17 genes)", figsize=(6,4)):
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 5))
 
+
     for model_name in results:
         y_true = results[model_name]['y_true']
-        y_pred = results[model_name]['y_pred']
-        ax.scatter(y_true, y_pred, alpha=0.4, label=model_name)
+        y_prob = results[model_name]['y_prob']
 
-    all_vals = np.concatenate([results[m]['y_true'] for m in results])
-    min_val, max_val = np.min(all_vals), np.max(all_vals)
-    ax.plot([min_val, max_val], [min_val, max_val], 'k--', label='Ideal')
+        
+        fpr, tpr, _ = roc_curve(y_true, y_prob)
+        roc_auc = auc(fpr, tpr)
 
-    ax.set_xlabel("True Values")
-    ax.set_ylabel("Predicted Values")
+        ax.plot(fpr, tpr, label=f"{model_name} (AUC = {roc_auc:.2f})")
+
+    ax.plot([0, 1], [0, 1], 'k--', label='Random (AUC = 0.50)')
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
     ax.set_title(title)
     ax.legend()
     ax.grid(True)
     return ax
 
-def plot_residuals(results, ax=None, title="Residuals vs. True Values"):
+def plot_precision_recall_curves(results, ax=None, title="Precision-Recall Curve Comparison (k=17 genes)", figsize=(6, 4)):
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 5))
+        fig, ax = plt.subplots(figsize=figsize)
 
     for model_name in results:
         y_true = results[model_name]['y_true']
-        y_pred = results[model_name]['y_pred']
-        residuals = y_pred - y_true
-        ax.scatter(y_true, residuals, alpha=0.4, label=model_name)
+        y_prob = results[model_name]['y_prob']
 
-    ax.axhline(0, color='k', linestyle='--')
-    ax.set_xlabel("True Values")
-    ax.set_ylabel("Residuals (Predicted - True)")
+        precision, recall, _ = precision_recall_curve(y_true, y_prob)
+        avg_precision = average_precision_score(y_true, y_prob)
+
+        ax.plot(recall, precision, label=f"{model_name} (AP = {avg_precision:.2f})")
+
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
     ax.set_title(title)
-    ax.legend()
+    ax.legend(loc='lower left')
     ax.grid(True)
     return ax
 
-def plot_regression_metrics(results, metric='R2', ax=None, title=None):
+def plot_classification_metric(results, metric='ROC AUC', ax=None, title=None):
+    """Metrics: 'Accuracy', 'ROC AUC', 'F1 Score', 'F1 Score Weighted'"""
     if ax is None:
         fig, ax = plt.subplots(figsize=(6, 4))
 
