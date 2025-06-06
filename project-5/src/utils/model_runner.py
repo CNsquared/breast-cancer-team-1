@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from sklearn.dummy import DummyRegressor
 
-def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None):
+def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, **kwargs):
     """
     Evaluate multiple regression models using K-Fold cross-validation.
 
@@ -52,7 +52,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             y_train, y_test = y_array[train_idx], y_array[test_idx]
 
             # Feature filtering
-            X_train_filtered, features = filter_data(X_train, y_train)
+            X_train_filtered, features = filter_data(X_train, y_train, **kwargs)
             X_test_filtered = X_test.loc[:, features]
 
             # Scale y within the fold
