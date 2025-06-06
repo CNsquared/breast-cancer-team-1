@@ -13,6 +13,7 @@ from sklearn.metrics import precision_recall_curve, average_precision_score, roc
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
+from sklearn.dummy import DummyRegressor
 
 def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None):
     """
@@ -30,6 +31,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     y_array = np.asarray(y, dtype=float)
     if models is None:
         models = {
+            'Dummy (mean)': DummyRegressor(strategy='mean'),
             'Ridge Regression': make_pipeline(StandardScaler(), Ridge()),
             'Random Forest': RandomForestRegressor(),
             'SVR': make_pipeline(StandardScaler(), SVR()),
@@ -46,6 +48,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     for name, model in models.items():
         r2_scores, mses, maes, yt, yp = [], [], [], [], []
         for train_idx, test_idx in kf.split(X, y_array):
+            
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
 
@@ -53,11 +56,18 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             X_train_filtered, features = filter_data(X_train, y_train)
             X_test_filtered = X_test.loc[:, features]
 
-            # Fit and predict
-            model.fit(X_train_filtered, y_train)
-            y_pred = model.predict(X_test_filtered)
+            # Scale y within the fold
+            y_scaler = StandardScaler()
+            y_train_scaled = y_scaler.fit_transform(y_train.reshape(-1, 1)).ravel()
 
-            # Metrics
+            # Fit model on scaled y
+            model.fit(X_train_filtered, y_train_scaled)
+
+            # Predict and inverse-transform to original scale
+            y_pred_scaled = model.predict(X_test_filtered)
+            y_pred = y_scaler.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+
+            # Evaluate using original y_test
             r2_scores.append(r2_score(y_test, y_pred))
             mses.append(mean_squared_error(y_test, y_pred))
             maes.append(mean_absolute_error(y_test, y_pred))
