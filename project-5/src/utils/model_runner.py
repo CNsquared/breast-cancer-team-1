@@ -48,7 +48,6 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     for name, model in models.items():
         r2_scores, mses, maes, yt, yp = [], [], [], [], []
         for train_idx, test_idx in kf.split(X, y_array):
-            
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
 
