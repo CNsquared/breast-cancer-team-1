@@ -38,3 +38,13 @@ class DataHandler:
             print(f"X shape before filtering: {X.shape}")
             print(f"X shape after filtering: {X_filtered.shape}")
         return X_filtered
+    
+    @staticmethod
+    def filter_genes_by_within_class_variance(X: pd.DataFrame, y: np.ndarray[int], threshold=1e-6):
+        classes = np.unique(y)
+        keep = np.ones(X.shape[1], dtype=bool)
+        for c in classes:
+            class_mask = (y == c)
+            class_var = np.var(X[class_mask], axis=0)
+            keep &= (class_var > threshold)
+        return X.loc[:, keep]
