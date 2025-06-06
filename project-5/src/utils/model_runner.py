@@ -14,6 +14,9 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from sklearn.dummy import DummyRegressor
+from sklearn.metrics import median_absolute_error, explained_variance_score
+from scipy.stats import spearmanr
+
 
 def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, **kwargs):
     """
@@ -31,7 +34,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     y_array = np.asarray(y, dtype=float)
     if models is None:
         models = {
-            'Dummy (mean)': DummyRegressor(strategy='mean'),
+            #'Dummy (mean)': DummyRegressor(strategy='mean'),
             'Ridge Regression': make_pipeline(StandardScaler(), Ridge()),
             'Random Forest': RandomForestRegressor(),
             'SVR': make_pipeline(StandardScaler(), SVR()),
@@ -46,7 +49,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     kf = KFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
 
     for name, model in models.items():
-        r2_scores, mses, maes, yt, yp = [], [], [], [], []
+        r2_scores, mses, maes, yt, yp, med_ae_scores, ev_scores, spearman_scores = [], [], [], [], [], [], [], []
         for train_idx, test_idx in kf.split(X, y_array):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
@@ -70,16 +73,24 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             r2_scores.append(r2_score(y_test, y_pred))
             mses.append(mean_squared_error(y_test, y_pred))
             maes.append(mean_absolute_error(y_test, y_pred))
+            med_ae_scores.append(median_absolute_error(y_test, y_pred))
+            ev_scores.append(explained_variance_score(y_test, y_pred))
+            spearman_scores.append(spearmanr(y_test, y_pred).correlation)
             yt.append(y_test)
             yp.append(y_pred)
 
+        yt = np.concatenate(yt)
+        yp = np.concatenate(yp)
         results[name] = {
-            'R2': {'mean': np.mean(r2_scores), 'std': np.std(r2_scores), 'scores': r2_scores},
-            'MSE': {'mean': np.mean(mses), 'std': np.std(mses), 'scores': mses},
-            'MAE': {'mean': np.mean(maes), 'std': np.std(maes), 'scores': maes},
+            'R2': {'mean': np.mean(r2_scores), 'std': np.std(r2_scores), 'scores': r2_scores, 'global': r2_score(yt, yp)},
+            'MSE': {'mean': np.mean(mses), 'std': np.std(mses), 'scores': mses, 'global':mean_squared_error(yt, yp)},
+            'MAE': {'mean': np.mean(maes), 'std': np.std(maes), 'scores': maes, 'global': mean_absolute_error(yt, yp)},
+            'MedianAE': {'mean': np.mean(med_ae_scores), 'std': np.std(med_ae_scores), 'scores': med_ae_scores, 'global': median_absolute_error(yt, yp)},
+            'ExplainedVariance': {'mean': np.mean(ev_scores), 'std': np.std(ev_scores), 'scores': ev_scores, 'global': explained_variance_score(yt, yp)},
+            'Spearman': {'mean': np.mean(spearman_scores), 'std': np.std(spearman_scores), 'scores': spearman_scores, 'global': spearmanr(yt, yp).correlation},
             'features': features,
-            'y_true': np.concatenate(yt),
-            'y_pred': np.concatenate(yp)
+            'y_true': yt,
+            'y_pred': yp
         }
 
     return results
