@@ -138,7 +138,7 @@ def generateFeatureSpace():
     featureSpace_metadata = metadata[['Patient ID', 'Sample ID', 'Diagnosis Age', 'Race Category', 'Tumor Type', 'Subtype', 'PFI_over60mo']]
 
 
-    mutations = pd.read_csv('/Users/zichenjiang/Downloads/BENG 285 projects SP25/breast-cancer-team-1/project-5/data/raw/TCGA.BRCA.mutations.txt', sep="\t")
+    mutations = pd.read_csv('data/raw/TCGA.BRCA.mutations.txt', sep="\t")
 
     # Filter for nonsynoymous pass SBS and indels that cause in top 10 IntOGen breast cancer drivers. They end up being Missense_Mutation, Frame_Shift_Del, Nonsense_Mutation, Frame_Shift_Ins, Splice_Site, In_Frame_Del
     pass_sbs_indels = mutations[mutations["FILTER"] == "PASS"]
