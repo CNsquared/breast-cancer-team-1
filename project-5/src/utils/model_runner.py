@@ -64,7 +64,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             f1_scores_weighted.append(f1_score(y_test, y_pred, average='weighted'))
             mcc_scores.append(matthews_corrcoef(y_test, y_pred))
             bacc_scores.append(balanced_accuracy_score(y_test, y_pred))
-            presicion_scores.append(precision_score(y_test, y_pred))
+            presicion_scores.append(precision_score(y_test, y_pred, zero_division=0))
             recall_scores.append(recall_score(y_test, y_pred))
             tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
             specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
@@ -87,7 +87,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             'ROC AUC': {'mean': np.mean(auc_scores), 'std': np.std(auc_scores), 'scores': auc_scores, 'global': roc_auc_score(yt, ypr)},
             'F1 Score': {'mean': np.mean(f1_scores), 'std': np.std(f1_scores), 'scores': f1_scores, 'global': f1_score(yt, yp)},
             'F1 Score Weighted': {'mean': np.mean(f1_scores_weighted), 'std': np.std(f1_scores_weighted), 'scores': f1_scores_weighted, 'global': f1_score(yt, yp, average='weighted')},
-            'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp)},
+            'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp, zero_division=0)},
             'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
             'Specificity': {'mean': np.mean(specificity_scores), 'std': np.std(specificity_scores), 'scores': specificity_scores, 'global': global_specificity},
             'features': features,
@@ -157,6 +157,6 @@ def plot_classification_metric(results, metric='ROC AUC', ax=None, title=None):
     ax.set_yticklabels(models)
     ax.invert_yaxis()  # optional: best model at top
     ax.set_xlabel(f"{metric} (± std)")
-    ax.set_title(title or f"{metric} Scores by Model")
+    ax.set_title(title or f"{metric}")
     ax.grid(True, axis='x')
     return ax
