@@ -9,40 +9,6 @@
 
 YML_FILE="project5_env.yml"
 
-# Extract environment name from yml file
-ENV_NAME=$(grep '^name:' "$YML_FILE" | awk '{print $2}')
-
-echo "Setting up conda environment '$ENV_NAME' from '$YML_FILE'..."
-
-# Flag to optionally skip env update
-SKIP_CONDA_UPDATE=false
-for arg in "$@"; do
-    if [[ "$arg" == "--skip-conda-update" ]]; then
-        SKIP_CONDA_UPDATE=true
-    fi
-done
-
-# Check if env exists
-if conda info --envs | awk '{print $1}' | grep -qx "$ENV_NAME"; then
-    echo "Conda environment '$ENV_NAME' already exists."
-else
-    echo "Creating conda environment '$ENV_NAME'..."
-    conda env create -f "$YML_FILE"
-fi
-
-# Update if not skipped
-if [[ "$SKIP_CONDA_UPDATE" == false ]]; then
-    echo "Updating conda environment '$ENV_NAME'..."
-    conda env update -f "$YML_FILE"
-else
-    echo "Skipping environment update (per --skip-conda-update)."
-fi
-
-# Activate
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "$ENV_NAME"
-
-
 
 # Download TCGA BRCA expression data from Dropbox
 

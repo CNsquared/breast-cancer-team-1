@@ -1,102 +1,206 @@
-import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_curve, accuracy_score, roc_auc_score, f1_score, average_precision_score, auc, roc_curve, matthews_corrcoef, balanced_accuracy_score, precision_score, recall_score, confusion_matrix
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score
 from xgboost import XGBClassifier
-from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
+import matplotlib.pyplot as plt
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import StratifiedKFold, train_test_split, GridSearchCV
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, roc_auc_score, f1_score
+from xgboost import XGBClassifier
+from sklearn.base import BaseEstimator, ClassifierMixin
 
-
-
-def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, **kwargs):
+class RandomGuessClassifier(BaseEstimator, ClassifierMixin):
     """
-    Evaluate multiple regression models using K-Fold cross-validation.
+    A dummy classifier that predicts classes by random sampling
+    according to the class distribution observed in the training data.
+    """
+    def __init__(self, random_state=None):
+        self.random_state = random_state
+
+    def fit(self, X, y):
+        classes, counts = np.unique(y, return_counts=True)
+        self.classes_ = classes
+        self.probs_ = counts / counts.sum()
+        self.rng_ = np.random.RandomState(self.random_state)
+        return self
+
+    def predict(self, X):
+        return self.rng_.choice(self.classes_, size=len(X), p=self.probs_)
+
+    def predict_proba(self, X):
+        # return a (n_samples, n_classes) matrix with the same class probabilities
+        return np.tile(self.probs_, (len(X), 1))
+
+
+def evaluate_models(
+    X: pd.DataFrame,
+    y: list,
+    models: dict = None,
+    random_state: int = 42,
+    cv_folds: int = 5,
+    filter_data: callable = None,
+    **kwargs
+):
+    """
+    Evaluate multiple classification models using:
+      1) A held-out test split
+      2) Hyperparameter tuning via GridSearchCV (small grids)
+      3) Final test-set evaluation of best models
 
     Parameters:
-    - X: pd.DataFrame, feature matrix with rows as samples and columns as features
-    - y: list or np.array, continuous target values
-    - models: dict, dictionary of model names and their corresponding sklearn model instances
-    - random_state: int, random seed for reproducibility
-    - cv_folds: int, number of folds for cross-validation
-    - filter_data: callable, function to filter features based on training data, should take (X_train, y_train) and return (X_filtered, feature_names)
+    - X: pd.DataFrame, features
+    - y: list or np.ndarray, integer class labels
+    - models: dict of { name: estimator } (if None, defaults provided)
+    - random_state: int
+    - cv_folds: int for inner CV
+    - filter_data: fn(X_train, y_train, **kwargs) -> (X_tr_filtered, feature_list)
+    - **kwargs: passed along to filter_data
     """
-
+    # === 1) initial train/test split ===
     y_array = np.asarray(y, dtype=int)
+    X_train_full, X_test, y_train_full, y_test = train_test_split(
+        X, y_array,
+        test_size=0.2,
+        stratify=y_array,
+        random_state=random_state
+    )
+    
+    # feature filtering step preserved
+    X_train_full, feats = filter_data(X_train_full, y_train_full, **kwargs) \
+                        if filter_data else (X_train_full, X.columns.tolist())
+    X_test = X_test.loc[:, feats]
+
+    # === 2) default models with balanced class weights ===
     if models is None:
         models = {
-            'Logistic Regression': make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, random_state=random_state)),
-            'Random Forest': RandomForestClassifier(n_estimators=100, random_state=random_state),
-            'SVM': make_pipeline(StandardScaler(), SVC(kernel='rbf', probability=True, random_state=random_state)),
-            'XGBoost': XGBClassifier(eval_metric='logloss', random_state=random_state)
+            'Logistic Regression': make_pipeline(
+                StandardScaler(),
+                LogisticRegression(class_weight='balanced',
+                                   max_iter=1_000,
+                                   random_state=random_state)
+            ),
+            'Random Forest': RandomForestClassifier(
+                n_estimators=100,
+                class_weight='balanced',
+                random_state=random_state
+            ),
+            'SVM': make_pipeline(
+                StandardScaler(),
+                SVC(class_weight='balanced',
+                    probability=True,
+                    random_state=random_state)
+            ),
+            'XGBoost': XGBClassifier(
+                eval_metric='logloss',
+                random_state=random_state
+            ),
+            'Random Guess': RandomGuessClassifier(random_state=random_state)
         }
 
-    if filter_data is None:
-        def filter_data(X: pd.DataFrame, y: np.ndarray):
-            return X, X.columns.tolist()
-        
+    # === 3) small hyper-parameter grids ===
+    default_grids = {
+        'Logistic Regression': {
+            'logisticregression__C': [0.1, 1, 10]
+        },
+        'Random Forest': {
+            'n_estimators': [100, 300],
+            'max_depth': [None, 5, 10]
+        },
+        'SVM': {
+            'svc__kernel': ['linear', 'rbf', 'poly'],
+            'svc__C': [0.1, 1, 10]
+        },
+        'XGBoost': {
+            'scale_pos_weight': [
+                np.bincount(y_train_full == 0)[1] / np.bincount(y_train_full == 1)[1]
+            ],
+            'n_estimators': [100, 300],
+            'max_depth': [3, 6]
+        },
+        # no hyperparams for Random Guess
+        'Random Guess': {}
+    }
+
     results = {}
-    skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    inner_cv = StratifiedKFold(
+        n_splits=cv_folds,
+        shuffle=True,
+        random_state=random_state
+    )
 
-    for name, model in models.items():
-        mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, presicion_scores, recall_scores, specificity_scores, yt, yp, ypr = [], [], [], [], [], [], [], [], [], [], [], []
-        for train_idx, test_idx in skf.split(X, y_array):
-            X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-            y_train, y_test = y_array[train_idx], y_array[test_idx]
+    # === 4) loop over each model ===
+    for name, estimator in models.items():
+        print(f"\n>>> Tuning {name} ...")
+        grid = GridSearchCV(
+            estimator=estimator,
+            param_grid=default_grids.get(name, {}),
+            cv=inner_cv,
+            scoring='accuracy',
+            n_jobs=-1
+        )
+        grid.fit(X_train_full, y_train_full)
 
-            # Feature filtering
-            X_train_filtered, features = filter_data(X_train, y_train, **kwargs)
-            X_test_filtered = X_test.loc[:, features]
+        best_est = grid.best_estimator_
+        best_params = grid.best_params_
+        best_cv_score = grid.best_score_
+        print(f"Best CV accuracy for {name}: {best_cv_score:.4f}")
+        print(f"→ Best params: {best_params}")
 
-            # Fit model on y
-            model.fit(X_train_filtered, y_train)
+        # === 6) final evaluation on the held-out test set ===
+        acc_scores, auc_scores, f1_scores, f1_scores_weighted, mcc_scores, bacc_scores, presicion_scores, recall_scores, specificity_scores, yt, yp, ypr = [], [], [], [], [], [], [], [], [], [], [], []
+        X_test_filt = X_test.loc[:, feats]
+        y_pred = best_est.predict(X_test_filt)
+        if hasattr(best_est, "predict_proba"):
+            y_prob = best_est.predict_proba(X_test_filt)[:, 1]
+        else:
+            try:
+                y_prob = best_est.decision_function(X_test_filt)
+            except AttributeError:
+                y_prob = y_pred
 
-            # Predict and inverse-transform to original scale
-            y_pred = model.predict(X_test_filtered)
-            y_prob = model.predict_proba(X_test_filtered)[:, 1] if hasattr(model, "predict_proba") else y_pred
+        acc_scores.append(accuracy_score(y_test, y_pred))
+        auc_scores.append(roc_auc_score(y_test, y_prob))
+        f1_scores.append(f1_score(y_test, y_pred))
+        f1_scores_weighted.append(f1_score(y_test, y_pred, average='weighted'))
 
-            acc_scores.append(accuracy_score(y_test, y_pred))
-            auc_scores.append(roc_auc_score(y_test, y_prob))
-            f1_scores.append(f1_score(y_test, y_pred))
-            f1_scores_weighted.append(f1_score(y_test, y_pred, average='weighted'))
-            mcc_scores.append(matthews_corrcoef(y_test, y_pred))
-            bacc_scores.append(balanced_accuracy_score(y_test, y_pred))
-            presicion_scores.append(precision_score(y_test, y_pred, zero_division=0))
-            recall_scores.append(recall_score(y_test, y_pred))
-            tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
-            specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-            specificity_scores.append(specificity)
-
-            # Evaluate using original y_test
-            yt.append(y_test)
-            yp.append(y_pred)
-            ypr.append(y_prob)
-
-        yt = np.concatenate(yt)
-        yp = np.concatenate(yp)
-        ypr = np.concatenate(ypr)
-        tn, fp, fn, tp = confusion_matrix(yt, yp).ravel()
-        global_specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+        # wrap into arrays
+        yt = y_test
+        yp = y_pred
+        ypr = y_prob
+        
         results[name] = {
-            'Matthews Corr Coef': {'mean': np.mean(mcc_scores), 'std': np.std(mcc_scores), 'scores': mcc_scores, 'global': matthews_corrcoef(yt, yp)},
-            'Balanced Accuracy': {'mean': np.mean(bacc_scores), 'std': np.std(bacc_scores), 'scores': bacc_scores, 'global': balanced_accuracy_score(yt, yp)},
+            #'Matthews Corr Coef': {'mean': np.mean(mcc_scores), 'std': np.std(mcc_scores), 'scores': mcc_scores, 'global': matthews_corrcoef(yt, yp)},
+            #'Balanced Accuracy': {'mean': np.mean(bacc_scores), 'std': np.std(bacc_scores), 'scores': bacc_scores, 'global': balanced_accuracy_score(yt, yp)},
             'Accuracy': {'mean': np.mean(acc_scores), 'std': np.std(acc_scores), 'scores': acc_scores, 'global': accuracy_score(yt, yp)},
             'ROC AUC': {'mean': np.mean(auc_scores), 'std': np.std(auc_scores), 'scores': auc_scores, 'global': roc_auc_score(yt, ypr)},
             'F1 Score': {'mean': np.mean(f1_scores), 'std': np.std(f1_scores), 'scores': f1_scores, 'global': f1_score(yt, yp)},
             'F1 Score Weighted': {'mean': np.mean(f1_scores_weighted), 'std': np.std(f1_scores_weighted), 'scores': f1_scores_weighted, 'global': f1_score(yt, yp, average='weighted')},
-            'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp, zero_division=0)},
-            'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
-            'Specificity': {'mean': np.mean(specificity_scores), 'std': np.std(specificity_scores), 'scores': specificity_scores, 'global': global_specificity},
-            'features': features,
+            #'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp, zero_division=0)},
+            #'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
             'y_true': yt,
             'y_pred': yp,
             'y_prob': ypr
         }
 
     return results
+
+
 
 def plot_roc_curves(results, ax=None, title="ROC Curve Comparison", figsize=(6,4)):
     if ax is None:
