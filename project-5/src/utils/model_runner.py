@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-
-from sklearn.metrics import precision_recall_curve, accuracy_score, roc_auc_score, f1_score, average_precision_score, roc_curve, auc
+from sklearn.metrics import precision_recall_curve, accuracy_score, roc_auc_score, f1_score, average_precision_score, auc, roc_curve, matthews_corrcoef, balanced_accuracy_score, precision_score, recall_score, confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
@@ -43,7 +42,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
 
     for name, model in models.items():
-        acc_scores, auc_scores, f1_scores, f1_scores_weighted, yt, yp, ypr = [], [], [], [], [], [], []
+        mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, presicion_scores, recall_scores, specificity_scores, yt, yp, ypr = [], [], [], [], [], [], [], [], [], [], [], []
         for train_idx, test_idx in skf.split(X, y_array):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
@@ -63,6 +62,13 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             auc_scores.append(roc_auc_score(y_test, y_prob))
             f1_scores.append(f1_score(y_test, y_pred))
             f1_scores_weighted.append(f1_score(y_test, y_pred, average='weighted'))
+            mcc_scores.append(matthews_corrcoef(y_test, y_pred))
+            bacc_scores.append(balanced_accuracy_score(y_test, y_pred))
+            presicion_scores.append(precision_score(y_test, y_pred))
+            recall_scores.append(recall_score(y_test, y_pred))
+            tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+            specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+            specificity_scores.append(specificity)
 
             # Evaluate using original y_test
             yt.append(y_test)
@@ -72,11 +78,18 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
         yt = np.concatenate(yt)
         yp = np.concatenate(yp)
         ypr = np.concatenate(ypr)
+        tn, fp, fn, tp = confusion_matrix(yt, yp).ravel()
+        global_specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
         results[name] = {
+            'Matthews Corr Coef': {'mean': np.mean(mcc_scores), 'std': np.std(mcc_scores), 'scores': mcc_scores, 'global': matthews_corrcoef(yt, yp)},
+            'Balanced Accuracy': {'mean': np.mean(bacc_scores), 'std': np.std(bacc_scores), 'scores': bacc_scores, 'global': balanced_accuracy_score(yt, yp)},
             'Accuracy': {'mean': np.mean(acc_scores), 'std': np.std(acc_scores), 'scores': acc_scores, 'global': accuracy_score(yt, yp)},
             'ROC AUC': {'mean': np.mean(auc_scores), 'std': np.std(auc_scores), 'scores': auc_scores, 'global': roc_auc_score(yt, ypr)},
             'F1 Score': {'mean': np.mean(f1_scores), 'std': np.std(f1_scores), 'scores': f1_scores, 'global': f1_score(yt, yp)},
             'F1 Score Weighted': {'mean': np.mean(f1_scores_weighted), 'std': np.std(f1_scores_weighted), 'scores': f1_scores_weighted, 'global': f1_score(yt, yp, average='weighted')},
+            'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp)},
+            'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
+            'Specificity': {'mean': np.mean(specificity_scores), 'std': np.std(specificity_scores), 'scores': specificity_scores, 'global': global_specificity},
             'features': features,
             'y_true': yt,
             'y_pred': yp,
