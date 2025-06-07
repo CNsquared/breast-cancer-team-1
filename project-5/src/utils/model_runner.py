@@ -168,7 +168,8 @@ def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  rando
                 'Logistic Regression': {'logisticregression__C': [0.1, 1, 10]},
                 'Random Forest': {'n_estimators': [100, 300], 'max_depth': [5, 10, None]},
                 'SVM': {'svc__kernel': ['linear', 'rbf', 'poly'],'svc__C': [0.1, 1, 10]},
-                'XGBoost':  {'scale_pos_weight': [np.bincount(y_train == 0)[1] / np.bincount(y_train == 1)[1]], 'n_estimators': [100, 300], 'max_depth': [3, 6]}
+                'XGBoost':  {'scale_pos_weight': [np.bincount(y_train == 0)[1] / np.bincount(y_train == 1)[1]], 'n_estimators': [100, 300], 'max_depth': [3, 6]},
+                'Random Guess': {}
             }
 
             # nested cross-validation for hyperparameter tuning
