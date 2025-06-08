@@ -13,7 +13,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 
-def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, **kwargs):
+def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_folds: int = 5, filter_data: callable = None, preprocess: callable = None, **kwargs):
     """
     Evaluate multiple regression models using K-Fold cross-validation.
 
@@ -43,10 +43,15 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
     skf = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
 
     for name, model in models.items():
-        mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, presicion_scores, recall_scores, specificity_scores, yt, yp, ypr = [], [], [], [], [], [], [], [], [], [], [], []
+        mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, presicion_scores, recall_scores, specificity_scores, yt, yp, ypr, best_features = [], [], [], [], [], [], [], [], [], [], [], [], []
         for train_idx, test_idx in skf.split(X, y_array):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
+
+            if preprocess is not None:
+                X_train = preprocess(X_train)
+                X_test = preprocess(X_test)
+                X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 
             # Feature filtering
             X_train_filtered, features = filter_data(X_train, y_train, **kwargs)
@@ -75,6 +80,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             yt.append(y_test)
             yp.append(y_pred)
             ypr.append(y_prob)
+            best_features.append(features)
 
         yt = np.concatenate(yt)
         yp = np.concatenate(yp)
@@ -91,7 +97,7 @@ def evaluate_models(X: pd.DataFrame, y: list, models: dict = None,  random_state
             'Precision': {'mean': np.mean(presicion_scores), 'std': np.std(presicion_scores), 'scores': presicion_scores, 'global': precision_score(yt, yp, zero_division=0)},
             'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
             'Specificity': {'mean': np.mean(specificity_scores), 'std': np.std(specificity_scores), 'scores': specificity_scores, 'global': global_specificity},
-            'features': features,
+            'features': best_features,
             'y_true': yt,
             'y_pred': yp,
             'y_prob': ypr
@@ -123,7 +129,7 @@ class RandomGuessClassifier(BaseEstimator, ClassifierMixin):
         # return a (n_samples, n_classes) matrix with the same class probabilities
         return np.tile(self.probs_, (len(X), 1))
 
-def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_outer: int = 5, filter_data: callable = None, cv_inner: int = 5, **kwargs):
+def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  random_state=42, cv_outer: int = 5, filter_data: callable = None, preprocess: callable = None, cv_inner: int = 5, **kwargs):
     """
     Evaluate multiple regression models using K-Fold cross-validation.
 
@@ -154,10 +160,15 @@ def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  rando
     skf_outer = StratifiedKFold(n_splits=cv_outer, shuffle=True, random_state=random_state)
 
     for name, model in models.items():
-        best_params, mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, precision_scores, recall_scores, specificity_scores, yt, yp, ypr = [], [], [], [], [], [], [], [], [], [], [], [], []
+        best_params, mcc_scores, bacc_scores, acc_scores, auc_scores, f1_scores, f1_scores_weighted, precision_scores, recall_scores, specificity_scores, yt, yp, ypr, best_features = [], [], [], [], [], [], [], [], [], [], [], [], [], []
         for train_idx, test_idx in skf_outer.split(X, y_array):
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
             y_train, y_test = y_array[train_idx], y_array[test_idx]
+
+            if preprocess is not None:
+                X_train = preprocess(X_train)
+                X_test = preprocess(X_test)
+                X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 
             # Feature filtering
             X_train_filtered, features = filter_data(X_train, y_train, **kwargs)
@@ -200,6 +211,7 @@ def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  rando
             yt.append(y_test)
             yp.append(y_pred)
             ypr.append(y_prob)
+            best_features.append(features)
 
         yt = np.concatenate(yt)
         yp = np.concatenate(yp)
@@ -216,7 +228,7 @@ def evaluate_models_nested(X: pd.DataFrame, y: list, models: dict = None,  rando
             'Precision': {'mean': np.mean(precision_scores), 'std': np.std(precision_scores), 'scores': precision_scores, 'global': precision_score(yt, yp, zero_division=0)},
             'Sensitivity': {'mean': np.mean(recall_scores), 'std': np.std(recall_scores), 'scores': recall_scores, 'global': recall_score(yt, yp)},
             'Specificity': {'mean': np.mean(specificity_scores), 'std': np.std(specificity_scores), 'scores': specificity_scores, 'global': global_specificity},
-            'features': features,
+            'features': best_features,
             'y_true': yt,
             'y_pred': yp,
             'y_prob': ypr,
